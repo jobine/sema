@@ -26,7 +26,7 @@ class LLMConfig:
 			model: Model key defined in the JSON file.
 			path: Optional override path to the JSON config file.
 		'''
-		config_path = (Path(path) if path else Path(__file__).with_name('models.json')).resolve()
+		config_path = (Path(path) if path else Path(__file__).resolve().parent.parent / 'config' / 'models.json').resolve()
 		cache_key = (config_path, model)
 
 		if cache_key in cls._instance_cache:

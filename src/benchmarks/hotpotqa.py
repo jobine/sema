@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import Any, List, Dict, Callable, Awaitable
 
 from .benchmark import Benchmark, DatasetType
@@ -23,9 +24,8 @@ class HotpotQA(Benchmark):
         '''
 
         name = type(self).__name__.lower()
-        # Get the directory where this module is located
-        module_dir = os.path.dirname(os.path.abspath(__file__))
-        benchmarks = load_json(os.path.join(module_dir, 'benchmarks.json'))
+        config_path = Path(__file__).resolve().parent.parent / 'config' / 'benchmarks.json'
+        benchmarks = load_json(str(config_path))
 
         if name in benchmarks:
             # Implement data loading logic here
