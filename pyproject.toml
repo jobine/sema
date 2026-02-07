@@ -1,0 +1,37 @@
+[project]
+name = "sema"
+version = "0.1.0"
+description = "Self-Evolving Multi-Agent frameowrk."
+authors = [
+    {name = "Ming Zhao",email = "jobine_cn@hotmail.com"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "requests",
+    "tqdm",
+    "openai",
+    "ollama",
+    "google-genai",
+    "google-genai[aiohttp]",
+    "anthropic",
+    "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+packages = [{include = "src"}]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

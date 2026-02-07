@@ -1,0 +1,22 @@
+{
+    "hotpotqa": {
+        "train": {
+            "url": "http://curtis.ml.cmu.edu/datasets/hotpot/hotpot_train_v1.1.json",
+            "name": "hotpotqa_train.json"
+        },
+        "validate": {
+            "url": "http://curtis.ml.cmu.edu/datasets/hotpot/hotpot_dev_distractor_v1.json",
+            "name": "hotpotqa_validate.json"
+        }
+    },
+    "gsm8k": {
+        "train": {
+            "url": "https://raw.githubusercontent.com/openai/grade-school-math/master/grade_school_math/data/train.jsonl",
+            "name": "gsm8k_train.jsonl"
+        },
+        "test": {
+            "url": "https://raw.githubusercontent.com/openai/grade-school-math/master/grade_school_math/data/test.jsonl",
+            "name": "gsm8k_test.jsonl"
+        }
+    }
+}
