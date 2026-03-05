@@ -1,4 +1,4 @@
-"""Common evaluation utilities for benchmarks."""
+'''Common evaluation utilities for benchmarks.'''
 
 import re
 import string
@@ -6,7 +6,7 @@ from collections import Counter
 
 
 def normalize_answer(s: str) -> str:
-    """
+    '''
     Normalize answer for evaluation.
     Lower text, remove punctuation, articles and extra whitespace.
     
@@ -15,7 +15,7 @@ def normalize_answer(s: str) -> str:
         
     Returns:
         Normalized string
-    """
+    '''
     def remove_articles(text):
         return re.sub(r'\b(a|an|the)\b', ' ', text)
     
@@ -33,7 +33,7 @@ def normalize_answer(s: str) -> str:
 
 
 def f1_score(prediction: str, ground_truth: str) -> float:
-    """
+    '''
     Calculate token-level F1 score between prediction and ground truth.
     
     Args:
@@ -42,7 +42,7 @@ def f1_score(prediction: str, ground_truth: str) -> float:
         
     Returns:
         F1 score as a float between 0.0 and 1.0
-    """
+    '''
     prediction_tokens = normalize_answer(prediction).split()
     ground_truth_tokens = normalize_answer(ground_truth).split()
     
@@ -62,7 +62,7 @@ def f1_score(prediction: str, ground_truth: str) -> float:
 
 
 def exact_match_score(prediction: str, ground_truth: str) -> float:
-    """
+    '''
     Calculate exact match score between prediction and ground truth.
     
     Args:
@@ -71,5 +71,5 @@ def exact_match_score(prediction: str, ground_truth: str) -> float:
         
     Returns:
         1.0 if normalized strings match exactly, 0.0 otherwise
-    """
+    '''
     return float(normalize_answer(prediction) == normalize_answer(ground_truth))

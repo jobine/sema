@@ -75,21 +75,21 @@ class Benchmark(ABC):
     def train_data(self) -> List[dict] | None:
         if self._train_data is None:
             logger.error('Train data not loaded. Please call load_data() first.')
-            # raise ValueError("Train data not loaded. Please call load_data() first.")
+            # raise ValueError('Train data not loaded. Please call load_data() first.')
         return self._train_data
     
     @property
     def validate_data(self) -> List[dict] | None:
         if self._validate_data is None:
             logger.error('Validate data not loaded. Please call load_data() first.')
-            # raise ValueError("Validate data not loaded. Please call load_data() first.")
+            # raise ValueError('Validate data not loaded. Please call load_data() first.')
         return self._validate_data
     
     @property
     def test_data(self) -> List[dict] | None:
         if self._test_data is None:
             logger.error('Test data not loaded. Please call load_data() first.')
-            # raise ValueError("Test data not loaded. Please call load_data() first.")
+            # raise ValueError('Test data not loaded. Please call load_data() first.')
         return self._test_data
 
 

@@ -77,8 +77,8 @@ class HotpotQA(Benchmark):
             Dictionary with 'em' (exact match), 'f1' scores and 'result'
         '''
         # Ensure inputs are strings
-        pred_str = str(prediction) if prediction is not None else ""
-        label_str = str(label) if label is not None else ""
+        pred_str = str(prediction) if prediction is not None else ''
+        label_str = str(label) if label is not None else ''
         
         em = exact_match_score(pred_str, label_str)
         f1 = f1_score(pred_str, label_str)
