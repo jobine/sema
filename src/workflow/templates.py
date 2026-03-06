@@ -9,9 +9,9 @@ class WorkflowTemplate:
     '''Factory for common workflow topologies.'''
 
     @staticmethod
-    def blank(goal: str = '') -> Workflow:
-        '''Create an empty workflow.'''
-        return Workflow(goal=goal)
+    def blank(goal: str = '', environment: str = '') -> Workflow:
+        '''Create an empty workflow. Optimizer builds structure from scratch.'''
+        return Workflow(goal=goal, environment=environment)
 
     @staticmethod
     def single_agent(
@@ -20,6 +20,7 @@ class WorkflowTemplate:
         system_prompt: str = 'You are a helpful assistant.',
         instruction_prompt: str = 'Answer the question.',
         goal: str = '',
+        environment: str = '',
         **agent_config,
     ) -> Workflow:
         '''Create a single-agent workflow.'''
@@ -31,6 +32,7 @@ class WorkflowTemplate:
         )
         return Workflow(
             goal=goal,
+            environment=environment,
             nodes=[node],
             entry_nodes=['agent_0'],
             exit_nodes=['agent_0'],
@@ -40,6 +42,7 @@ class WorkflowTemplate:
     def chain(
         roles: list[dict] | None = None,
         goal: str = '',
+        environment: str = '',
     ) -> Workflow:
         '''Create a sequential chain of agents.
 
@@ -91,6 +94,7 @@ class WorkflowTemplate:
 
         return Workflow(
             goal=goal,
+            environment=environment,
             nodes=nodes,
             edges=edges,
             entry_nodes=[nodes[0].node_id] if nodes else [],
@@ -102,6 +106,7 @@ class WorkflowTemplate:
         num_debaters: int = 2,
         num_rounds: int = 2,
         goal: str = '',
+        environment: str = '',
     ) -> Workflow:
         '''Create a debate workflow with multiple debaters and a judge.
 
@@ -164,6 +169,7 @@ class WorkflowTemplate:
         entry_nodes = [f'debater_{i}' for i in range(num_debaters)]
         return Workflow(
             goal=goal,
+            environment=environment,
             nodes=nodes,
             edges=edges,
             entry_nodes=entry_nodes,
@@ -174,6 +180,7 @@ class WorkflowTemplate:
     def hierarchical(
         num_workers: int = 3,
         goal: str = '',
+        environment: str = '',
     ) -> Workflow:
         '''Create a hierarchical manager-worker workflow.
 
@@ -243,6 +250,7 @@ class WorkflowTemplate:
 
         return Workflow(
             goal=goal,
+            environment=environment,
             nodes=nodes,
             edges=edges,
             entry_nodes=[manager_id],

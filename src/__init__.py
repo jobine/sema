@@ -3,9 +3,10 @@
 from .agents import AgentConfig, AgentState, Agent
 from .benchmarks import Benchmark, HotpotQA, DatasetType
 from .models.models import AsyncLLM, LLMConfig
-from .workflow import Workflow
+from .workflow import Workflow, WorkflowExecutor, WorkflowResult, WorkflowTemplate
 from .memory import MemorySystem
 from .tools import ToolRegistry
+from .optimizer import Population, Optimizer, OptimizerRegistry
 
 __all__ = [
     'AgentConfig',
@@ -17,6 +18,12 @@ __all__ = [
     'AsyncLLM',
     'LLMConfig',
     'Workflow',
+    'WorkflowExecutor',
+    'WorkflowResult',
+    'WorkflowTemplate',
     'MemorySystem',
     'ToolRegistry',
+    'Population',
+    'Optimizer',
+    'OptimizerRegistry',
 ]
