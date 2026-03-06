@@ -7,6 +7,7 @@ from .workflow import Workflow, WorkflowExecutor, WorkflowResult, WorkflowTempla
 from .memory import MemorySystem
 from .tools import ToolRegistry
 from .optimizer import Population, Optimizer, OptimizerRegistry
+from .orchestrator import SEMAConfig, ExperimentTracker, SEMAOrchestrator
 
 __all__ = [
     'AgentConfig',
@@ -26,4 +27,7 @@ __all__ = [
     'Population',
     'Optimizer',
     'OptimizerRegistry',
+    'SEMAConfig',
+    'ExperimentTracker',
+    'SEMAOrchestrator',
 ]
