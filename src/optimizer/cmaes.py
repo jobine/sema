@@ -189,7 +189,14 @@ class CMAESOptimizer(Optimizer):
         '''One CMA-ES update step. Mutates state in place.'''
         n = state.dim
 
-        # CMA-ES hyperparameters (standard settings)
+        # Sort by fitness (descending); zip truncates to min length
+        ranked = sorted(zip(fitnesses, samples), key=lambda x: -x[0])
+        mu = min(mu, len(ranked))
+        if mu == 0:
+            return state
+        elite_samples = [s for _, s in ranked[:mu]]
+
+        # CMA-ES hyperparameters (standard settings, computed with actual mu)
         weights = [math.log(mu + 0.5) - math.log(i + 1) for i in range(mu)]
         w_sum = sum(weights)
         weights = [w / w_sum for w in weights]
@@ -201,10 +208,6 @@ class CMAESOptimizer(Optimizer):
         cmu = min(1 - c1, 2 * (mu_eff - 2 + 1 / mu_eff) / ((n + 2) ** 2 + mu_eff))
         damps = 1 + 2 * max(0, math.sqrt((mu_eff - 1) / (n + 1)) - 1) + cs
         chi_n = math.sqrt(n) * (1 - 1 / (4 * n) + 1 / (21 * n ** 2))
-
-        # Sort by fitness (descending)
-        ranked = sorted(zip(fitnesses, samples), key=lambda x: -x[0])
-        elite_samples = [s for _, s in ranked[:mu]]
 
         # New mean
         old_mean = state.mean[:]

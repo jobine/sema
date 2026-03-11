@@ -52,22 +52,28 @@ class LLMOptimizer(Optimizer):
 
         history_text = '\n\n---\n\n'.join(history_parts) if history_parts else 'No history yet.'
 
+        goal = next((wf.goal for wf in population.workflows if wf.goal), '')
+        goal_line = f'Experiment goal: {goal}\n\n' if goal else ''
+
         # Check if population has blank workflows
         has_nodes = any(wf.nodes for wf in population.workflows)
         if not has_nodes:
             instruction = (
                 'Bootstrap a new workflow JSON with at least 2 nodes. '
                 'Each node must have role (name, system_prompt) and action (name, instruction_prompt). '
+                'Tailor role names and prompts to the experiment goal. '
                 'Return ONLY valid JSON that matches the Workflow schema.'
             )
         else:
             instruction = (
-                'Propose an improved workflow JSON with better prompts and/or topology that would '
-                'achieve higher fitness. Return ONLY valid JSON that matches the Workflow schema.'
+                'Propose an improved workflow JSON with better prompts and/or topology. '
+                'You may add, remove, or rename nodes and change role names to better serve the goal. '
+                'Return ONLY valid JSON that matches the Workflow schema.'
             )
 
         return (
-            f'You are a meta-optimizer. Your goal is to improve multi-agent workflows.\n\n'
+            f'You are a meta-optimizer improving multi-agent workflows.\n\n'
+            f'{goal_line}'
             f'Past workflow performances (best first):\n\n{history_text}\n\n'
             f'{instruction}'
         )

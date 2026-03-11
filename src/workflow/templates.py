@@ -9,6 +9,41 @@ class WorkflowTemplate:
     '''Factory for common workflow topologies.'''
 
     @staticmethod
+    async def from_goal(goal: str, model: str = 'gpt-4o-mini', environment: str = '') -> Workflow:
+        '''Design an initial workflow by asking the LLM to choose structure for the given goal.
+
+        Falls back to WorkflowTemplate.chain on any error.
+        '''
+        import json
+        schema_hint = (
+            '{"goal":"...","nodes":[{"node_id":"...","role":{"name":"...","system_prompt":"..."},'
+            '"action":{"name":"...","instruction_prompt":"..."}}],'
+            '"edges":[{"source_id":"...","target_id":"...","edge_type":"sequential"}],'
+            '"entry_nodes":[...],"exit_nodes":[...]}'
+        )
+        prompt = (
+            f'Design a multi-agent workflow for this goal:\nGoal: {goal}\n\n'
+            f'Use 2-5 agents with precise role names (e.g. "evidence_retriever", "claim_verifier").\n'
+            f'Choose the best topology (chain/debate/hierarchical/custom).\n\n'
+            f'Schema: {schema_hint}\n\n'
+            f'Set goal="{goal}", environment="{environment}". Return ONLY the JSON.'
+        )
+        try:
+            from ..models.models import AsyncLLM
+            resp = await AsyncLLM(model)(prompt)
+            text = resp.strip()
+            if '```' in text:
+                start = text.find('{', text.find('```'))
+                end = text.rfind('}') + 1
+                text = text[start:end]
+            wf = Workflow.model_validate(json.loads(text))
+            if wf.nodes:
+                return wf
+        except Exception:
+            pass
+        return WorkflowTemplate.chain(goal=goal, environment=environment)
+
+    @staticmethod
     def blank(goal: str = '', environment: str = '') -> Workflow:
         '''Create an empty workflow. Optimizer builds structure from scratch.'''
         return Workflow(goal=goal, environment=environment)
@@ -24,9 +59,10 @@ class WorkflowTemplate:
         **agent_config,
     ) -> Workflow:
         '''Create a single-agent workflow.'''
+        goal_ctx = f'\n\nOverall goal: {goal}' if goal else ''
         node = WorkflowNode(
             node_id='agent_0',
-            role=Role(name=role_name, system_prompt=system_prompt),
+            role=Role(name=role_name, system_prompt=f'{system_prompt}{goal_ctx}'),
             action=Action(name=action_name, instruction_prompt=instruction_prompt),
             agent_config=agent_config,
         )
@@ -51,25 +87,26 @@ class WorkflowTemplate:
                    Defaults to a 3-step chain: decompose -> research -> synthesize.
             goal: High-level goal for the workflow.
         '''
+        goal_ctx = f'\n\nOverall goal: {goal}' if goal else ''
         if roles is None:
             roles = [
                 {
                     'name': 'decomposer',
-                    'system_prompt': 'You decompose complex questions into sub-questions.',
+                    'system_prompt': f'You decompose complex questions into sub-questions.{goal_ctx}',
                     'action_name': 'decompose',
-                    'instruction_prompt': 'Break down the question into sub-questions.',
+                    'instruction_prompt': 'Break down the question into focused sub-questions.',
                 },
                 {
                     'name': 'researcher',
-                    'system_prompt': 'You research and gather information.',
+                    'system_prompt': f'You research and gather information to answer sub-questions.{goal_ctx}',
                     'action_name': 'research',
-                    'instruction_prompt': 'Research each sub-question using the context.',
+                    'instruction_prompt': 'Research each sub-question using the context provided.',
                 },
                 {
                     'name': 'synthesizer',
-                    'system_prompt': 'You synthesize information into a final answer.',
+                    'system_prompt': f'You synthesize research findings into a final answer.{goal_ctx}',
                     'action_name': 'synthesize',
-                    'instruction_prompt': 'Combine the research into a final answer.',
+                    'instruction_prompt': 'Combine all research findings into a concise final answer.',
                 },
             ]
 
@@ -77,9 +114,12 @@ class WorkflowTemplate:
         edges = []
         for i, r in enumerate(roles):
             node_id = f'agent_{i}'
+            sys_prompt = r.get('system_prompt', '')
+            if goal_ctx and goal_ctx not in sys_prompt:
+                sys_prompt = f'{sys_prompt}{goal_ctx}'
             nodes.append(WorkflowNode(
                 node_id=node_id,
-                role=Role(name=r['name'], system_prompt=r.get('system_prompt', '')),
+                role=Role(name=r['name'], system_prompt=sys_prompt),
                 action=Action(
                     name=r.get('action_name', r['name']),
                     instruction_prompt=r.get('instruction_prompt', ''),
@@ -118,6 +158,8 @@ class WorkflowTemplate:
         nodes = []
         edges = []
 
+        goal_ctx = f'\n\nOverall goal: {goal}' if goal else ''
+
         # Create debater nodes
         for i in range(num_debaters):
             node_id = f'debater_{i}'
@@ -125,7 +167,7 @@ class WorkflowTemplate:
                 node_id=node_id,
                 role=Role(
                     name=f'debater_{i}',
-                    system_prompt=f'You are debater {i}. Argue your position clearly.',
+                    system_prompt=f'You are debater {i}. Argue your position clearly.{goal_ctx}',
                 ),
                 action=Action(
                     name='debate',
@@ -139,7 +181,7 @@ class WorkflowTemplate:
             node_id=judge_id,
             role=Role(
                 name='judge',
-                system_prompt='You evaluate arguments and determine the best answer.',
+                system_prompt=f'You evaluate arguments and determine the best answer.{goal_ctx}',
             ),
             action=Action(
                 name='judge',
@@ -188,6 +230,7 @@ class WorkflowTemplate:
             num_workers: Number of worker agents.
             goal: High-level goal for the workflow.
         '''
+        goal_ctx = f'\n\nOverall goal: {goal}' if goal else ''
         nodes = []
         edges = []
 
@@ -197,7 +240,7 @@ class WorkflowTemplate:
             node_id=manager_id,
             role=Role(
                 name='manager',
-                system_prompt='You delegate tasks and aggregate results from workers.',
+                system_prompt=f'You delegate tasks and aggregate results from workers.{goal_ctx}',
             ),
             action=Action(
                 name='delegate',
@@ -212,7 +255,7 @@ class WorkflowTemplate:
                 node_id=worker_id,
                 role=Role(
                     name=f'worker_{i}',
-                    system_prompt=f'You are worker {i}. Complete your assigned sub-task.',
+                    system_prompt=f'You are worker {i}. Complete your assigned sub-task.{goal_ctx}',
                 ),
                 action=Action(
                     name='execute',
@@ -232,7 +275,7 @@ class WorkflowTemplate:
             node_id=aggregator_id,
             role=Role(
                 name='aggregator',
-                system_prompt='You combine worker outputs into a final result.',
+                system_prompt=f'You combine worker outputs into a final result.{goal_ctx}',
             ),
             action=Action(
                 name='aggregate',

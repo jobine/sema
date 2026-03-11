@@ -14,10 +14,12 @@ class SEMAConfig(BaseModel):
 
     experiment_name: str = 'sema_experiment'
     storage_root: str = '~/.sema/experiments'
+    goal: str = ''
     environment: Environment
     optimizer_type: str = 'hierarchical'
     optimizer_config: OptimizerConfig = OptimizerConfig()
-    seed_template: str = 'single_agent'   # blank|single_agent|chain|debate|hierarchical
+    seed_template: str = 'auto'            # auto|blank|single_agent|chain|debate|hierarchical
+    bootstrap_model: str = 'gpt-4o-mini'  # model used to design the seed workflow when seed_template='auto'
     population_size: int = 10
     eval_samples_per_generation: int = 50
     eval_dataset: str = 'validate'        # train|validate|test

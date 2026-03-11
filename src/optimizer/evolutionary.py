@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import math
 import random
 import uuid
@@ -62,29 +63,55 @@ class RoleActionMutator:
 
         node = random.choice(workflow.nodes)
         failure_text = '\n'.join(failures[:3]) if failures else 'No specific failures recorded.'
+        goal = workflow.goal
+        goal_line = f'Workflow goal: {goal}\n' if goal else ''
 
         role_prompt = (
-            f'Given this role description:\n{node.role.system_prompt}\n\n'
-            f'And these failure cases:\n{failure_text}\n\n'
-            'Rewrite the system_prompt to fix the failures. Return only the improved prompt, nothing else.'
+            f'{goal_line}'
+            f'Current role name: {node.role.name}\n'
+            f'Current system prompt: {node.role.system_prompt}\n\n'
+            f'Failure cases:\n{failure_text}\n\n'
+            'Return a JSON object with an improved role: {"name": "...", "system_prompt": "..."}\n'
+            'The name should be a short snake_case identifier reflecting the role\'s function.\n'
+            'Return ONLY the JSON.'
         )
         action_prompt = (
-            f'Given this action instruction:\n{node.action.instruction_prompt}\n\n'
-            f'And these failure cases:\n{failure_text}\n\n'
-            'Rewrite the instruction_prompt to fix the failures. Return only the improved prompt, nothing else.'
+            f'{goal_line}'
+            f'Current action name: {node.action.name}\n'
+            f'Current instruction prompt: {node.action.instruction_prompt}\n\n'
+            f'Failure cases:\n{failure_text}\n\n'
+            'Return a JSON object with an improved action: {"name": "...", "instruction_prompt": "..."}\n'
+            'The name should be a short snake_case identifier for the action.\n'
+            'Return ONLY the JSON.'
         )
 
         try:
             from ..models.models import AsyncLLM
             llm = AsyncLLM(model)
-            new_sys, new_inst = await asyncio.gather(
+            new_role_resp, new_action_resp = await asyncio.gather(
                 llm(role_prompt),
                 llm(action_prompt),
             )
-            if new_sys:
-                node.role.system_prompt = str(new_sys).strip()
-            if new_inst:
-                node.action.instruction_prompt = str(new_inst).strip()
+            if new_role_resp:
+                text = str(new_role_resp).strip()
+                try:
+                    data = json.loads(text)
+                    if 'name' in data:
+                        node.role.name = str(data['name']).strip()
+                    if 'system_prompt' in data:
+                        node.role.system_prompt = str(data['system_prompt']).strip()
+                except Exception:
+                    node.role.system_prompt = text  # fallback: plain text
+            if new_action_resp:
+                text = str(new_action_resp).strip()
+                try:
+                    data = json.loads(text)
+                    if 'name' in data:
+                        node.action.name = str(data['name']).strip()
+                    if 'instruction_prompt' in data:
+                        node.action.instruction_prompt = str(data['instruction_prompt']).strip()
+                except Exception:
+                    node.action.instruction_prompt = text  # fallback: plain text
         except Exception:
             pass
 
@@ -118,9 +145,18 @@ class TopologyMutator:
         return workflow
 
     def _add_node(self, workflow: Workflow) -> Workflow:
+        goal = workflow.goal
+        role_sys = (
+            f'Overall goal: {goal}\n\nYou are a specialist agent contributing to the above goal.'
+            if goal else 'You are a helpful assistant.'
+        )
+        action_inst = (
+            f'Process the input and contribute toward: {goal}'
+            if goal else 'Process the input and provide output.'
+        )
         new_node = WorkflowNode(
-            role=Role(name='new_role', system_prompt='You are a helpful assistant.'),
-            action=Action(name='new_action', instruction_prompt='Process the input and provide output.'),
+            role=Role(name='specialist', system_prompt=role_sys),
+            action=Action(name='process', instruction_prompt=action_inst),
         )
         workflow.nodes.append(new_node)
 
@@ -170,6 +206,109 @@ class TopologyMutator:
         valid_targets = [n.node_id for n in workflow.nodes if n.node_id != edge.source_id]
         if valid_targets:
             edge.target_id = random.choice(valid_targets)
+
+        return workflow
+
+
+class GoalDrivenTopologyMutator:
+    '''Macro-level mutation: asks the LLM to propose a targeted structural change guided by goal + failures.'''
+
+    _fallback = TopologyMutator()
+
+    async def mutate(
+        self,
+        workflow: Workflow,
+        model: str,
+        failures: list[str],
+        fitness: float = 0.0,
+    ) -> Workflow:
+        if not workflow.goal or not workflow.nodes:
+            return self._fallback.mutate(workflow)
+
+        backup = workflow.to_json()
+        node_summary = '; '.join(
+            f'{n.node_id}={n.role.name}' for n in workflow.nodes
+        )
+        removable = [
+            n.node_id for n in workflow.nodes
+            if n.node_id not in set(workflow.entry_nodes) | set(workflow.exit_nodes)
+        ]
+        failure_text = '\n'.join(failures[:3]) if failures else 'No specific failures.'
+
+        prompt = (
+            f'Goal: {workflow.goal}\n'
+            f'Current nodes: {node_summary}\n'
+            f'Non-protected nodes (removable): {removable}\n'
+            f'Recent failures (fitness={fitness:.3f}):\n{failure_text}\n\n'
+            'Propose ONE structural change as JSON. Choose the most impactful op:\n'
+            '- {"op":"add_node","role_name":"...","system_prompt":"...","action_name":"...","instruction_prompt":"...","after_node_id":"<existing node_id>"}\n'
+            '- {"op":"remove_node","node_id":"<non-protected node_id>"}\n'
+            '- {"op":"change_role","node_id":"...","role_name":"...","system_prompt":"...","action_name":"...","instruction_prompt":"..."}\n'
+            'Return ONLY the JSON patch.'
+        )
+
+        try:
+            from ..models.models import AsyncLLM
+            resp = await AsyncLLM(model)(prompt)
+            text = resp.strip()
+            if '```' in text:
+                start = text.find('{', text.find('```'))
+                end = text.rfind('}') + 1
+                text = text[start:end]
+            patch = json.loads(text)
+            op = patch.get('op', '')
+
+            if op == 'add_node':
+                new_node = WorkflowNode(
+                    node_id=f'agent_{uuid.uuid4().hex[:6]}',
+                    role=Role(
+                        name=str(patch.get('role_name', 'specialist')),
+                        system_prompt=str(patch.get('system_prompt', '')),
+                    ),
+                    action=Action(
+                        name=str(patch.get('action_name', 'process')),
+                        instruction_prompt=str(patch.get('instruction_prompt', '')),
+                    ),
+                )
+                after_id = patch.get('after_node_id') or (workflow.nodes[-1].node_id if workflow.nodes else None)
+                workflow.nodes.append(new_node)
+                if after_id:
+                    workflow.edges.append(WorkflowEdge(source_id=after_id, target_id=new_node.node_id, edge_type='sequential'))
+                workflow.exit_nodes = [new_node.node_id]
+
+            elif op == 'remove_node':
+                tid = str(patch.get('node_id', ''))
+                protected = set(workflow.entry_nodes) | set(workflow.exit_nodes)
+                if tid and tid not in protected and any(n.node_id == tid for n in workflow.nodes):
+                    incoming = [e for e in workflow.edges if e.target_id == tid]
+                    outgoing = [e for e in workflow.edges if e.source_id == tid]
+                    new_edges = [
+                        WorkflowEdge(source_id=inc.source_id, target_id=out.target_id, edge_type='sequential')
+                        for inc in incoming for out in outgoing
+                    ]
+                    workflow.edges = [e for e in workflow.edges if e.source_id != tid and e.target_id != tid]
+                    workflow.edges.extend(new_edges)
+                    workflow.nodes = [n for n in workflow.nodes if n.node_id != tid]
+
+            elif op == 'change_role':
+                tid = str(patch.get('node_id', ''))
+                for node in workflow.nodes:
+                    if node.node_id == tid:
+                        if 'role_name' in patch:
+                            node.role.name = str(patch['role_name'])
+                        if 'system_prompt' in patch:
+                            node.role.system_prompt = str(patch['system_prompt'])
+                        if 'action_name' in patch:
+                            node.action.name = str(patch['action_name'])
+                        if 'instruction_prompt' in patch:
+                            node.action.instruction_prompt = str(patch['instruction_prompt'])
+                        break
+
+            errors = workflow.validate_graph()
+            if errors:
+                workflow = Workflow.from_json(backup)
+        except Exception:
+            workflow = Workflow.from_json(backup)
 
         return workflow
 
@@ -293,6 +432,7 @@ class EvolutionaryOptimizer(Optimizer):
         self._node_mutator = NodeConfigMutator()
         self._role_mutator = RoleActionMutator()
         self._topo_mutator = TopologyMutator()
+        self._goal_topo_mutator = GoalDrivenTopologyMutator()
         self._crossover = WorkflowCrossover()
         self._stats: dict[str, int] = {
             'crossovers': 0,
@@ -324,14 +464,12 @@ class EvolutionaryOptimizer(Optimizer):
         ]
 
         elite = self._get_elite(population)
-        elite_ids = {wf.workflow_id for wf in elite}
         all_workflows = population.workflows
         n_new = self.config.population_size - len(elite)
 
         new_workflows: list[Workflow] = [self._deep_copy_workflow(wf) for wf in elite]
 
-        meso_tasks = []
-        offspring_pre_meso: list[Workflow] = []
+        offspring_pre_async: list[Workflow] = []
 
         for _ in range(n_new):
             p1 = self._select_parent(all_workflows)
@@ -344,25 +482,29 @@ class EvolutionaryOptimizer(Optimizer):
             else:
                 child = self._deep_copy_workflow(p1)
 
-            # Micro mutation (always)
+            # Micro mutation (sync, always)
             child = self._node_mutator.mutate(child)
             self._stats['micro_mutations'] += 1
 
-            # Macro mutation
-            if 'macro' in self.config.mutation_levels and random.random() < self.config.macro_mutation_rate:
-                child = self._topo_mutator.mutate(child)
-                self._stats['macro_mutations'] += 1
+            offspring_pre_async.append(child)
 
-            offspring_pre_meso.append(child)
+        # Macro (goal-driven topology) + meso mutations merged into one async gather
+        levels = self.config.mutation_levels
+        macro_rate = self.config.macro_mutation_rate
+        mutation_rate = self.config.mutation_rate
+        meso_model = self.config.meso_model
+        stats = self._stats
 
-        # Meso mutations (LLM-based, run concurrently)
-        async def maybe_meso(child: Workflow) -> Workflow:
-            if 'meso' in self.config.mutation_levels and random.random() < self.config.mutation_rate:
-                child = await self._role_mutator.mutate(child, self.config.meso_model, failures)
-                self._stats['meso_mutations'] += 1
+        async def maybe_macro_and_meso(child: Workflow) -> Workflow:
+            if 'macro' in levels and random.random() < macro_rate:
+                child = await self._goal_topo_mutator.mutate(child, meso_model, failures, child.fitness)
+                stats['macro_mutations'] += 1
+            if 'meso' in levels and random.random() < mutation_rate:
+                child = await self._role_mutator.mutate(child, meso_model, failures)
+                stats['meso_mutations'] += 1
             return child
 
-        mutated = await asyncio.gather(*[maybe_meso(c) for c in offspring_pre_meso])
+        mutated = await asyncio.gather(*[maybe_macro_and_meso(c) for c in offspring_pre_async])
         new_workflows.extend(mutated)
 
         population.replace_workflows(new_workflows)

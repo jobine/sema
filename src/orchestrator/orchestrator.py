@@ -38,7 +38,7 @@ class SEMAOrchestrator:
         '''Full run from generation 0.'''
         self._benchmark = self.config.environment.get_benchmark()
         self._benchmark.load_data()
-        population = self._build_seed_population()
+        population = await self._build_seed_population()
         optimizer = OptimizerRegistry.create(
             self.config.optimizer_type, self.config.optimizer_config, population
         )
@@ -69,9 +69,12 @@ class SEMAOrchestrator:
         self, population: Population, optimizer: Any, start_gen: int
     ) -> dict[str, Any]:
         feedback_collector = FeedbackCollector()
-        best_fitness = 0.0
+        # Restore best fitness from tracker so early-stop is correct on resume
+        best_fitness = self.tracker._best_fitness
         no_improve = 0
         generation = start_gen - 1
+        # Track how many history entries existed before this session
+        history_offset = len(self.tracker._history)
 
         dataset_items: list[dict] = (
             getattr(self._benchmark, f'{self.config.eval_dataset}_data', None) or []
@@ -116,7 +119,7 @@ class SEMAOrchestrator:
             'best_fitness': best_fitness,
             'generations': generation + 1,
             'report': report,
-            'history': self.tracker.get_history(),
+            'history': self.tracker.get_history()[history_offset:],
         }
 
     async def _evaluate_generation(
@@ -196,17 +199,24 @@ class SEMAOrchestrator:
                 parts.append(item)
         return '\n'.join(parts)
 
-    def _build_seed_population(self) -> Population:
+    async def _build_seed_population(self) -> Population:
         '''Build a seed population from the configured template.'''
-        template_map = {
-            'blank': WorkflowTemplate.blank,
-            'single_agent': WorkflowTemplate.single_agent,
-            'chain': WorkflowTemplate.chain,
-            'debate': WorkflowTemplate.debate,
-            'hierarchical': WorkflowTemplate.hierarchical,
-        }
-        factory = template_map.get(self.config.seed_template, WorkflowTemplate.single_agent)
-        seed_workflow = factory()
+        if self.config.seed_template == 'auto':
+            seed_workflow = await WorkflowTemplate.from_goal(
+                self.config.goal,
+                self.config.bootstrap_model,
+                self.config.environment.name,
+            )
+        else:
+            template_map = {
+                'blank': WorkflowTemplate.blank,
+                'single_agent': WorkflowTemplate.single_agent,
+                'chain': WorkflowTemplate.chain,
+                'debate': WorkflowTemplate.debate,
+                'hierarchical': WorkflowTemplate.hierarchical,
+            }
+            factory = template_map.get(self.config.seed_template, WorkflowTemplate.single_agent)
+            seed_workflow = factory(goal=self.config.goal, environment=self.config.environment.name)
 
         population = Population(
             population_size=self.config.population_size,

@@ -56,6 +56,7 @@ class PromptBreedingOptimizer(Optimizer):
         p2_prompts: dict[str, dict[str, str]],
         p1_failures: list[str],
         p2_failures: list[str],
+        goal: str = '',
     ) -> dict[str, dict[str, str]]:
         '''Combine prompts from two parents, fixing their failures.'''
         self._stats['breed_calls'] += 1
@@ -67,10 +68,11 @@ class PromptBreedingOptimizer(Optimizer):
             [f'Parent A failure: {f}' for f in p1_failures]
             + [f'Parent B failure: {f}' for f in p2_failures]
         ) or 'No failures recorded.'
+        goal_line = f'Experiment goal: {goal}\n\n' if goal else ''
 
         prompt = (
-            'You are a prompt optimizer. Combine the strengths of two prompt sets '
-            'and fix their shared failures.\n\n'
+            f'You are a prompt optimizer. {goal_line}'
+            'Combine the strengths of two prompt sets and fix their shared failures.\n\n'
             f'Parent A prompts:\n{p1_text}\n\n'
             f'Parent B prompts:\n{p2_text}\n\n'
             f'Failures to fix:\n{failures_text}\n\n'
@@ -146,7 +148,9 @@ class PromptBreedingOptimizer(Optimizer):
             p1_failures = self._get_failures(p1.workflow_id, trajectories)
             p2_failures = self._get_failures(p2.workflow_id, trajectories)
 
-            child_prompts = await self._breed(p1_prompts, p2_prompts, p1_failures, p2_failures)
+            child_prompts = await self._breed(
+                p1_prompts, p2_prompts, p1_failures, p2_failures, goal=p1.goal
+            )
 
             # Apply to target structure (use p1 as structural template)
             child = self._apply_prompts(p1, child_prompts)
