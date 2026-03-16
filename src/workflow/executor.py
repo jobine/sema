@@ -197,12 +197,19 @@ class WorkflowExecutor:
 
         t0 = time.monotonic()
 
+        # For exit nodes, append answer_format instruction so the agent
+        # produces concise output matching the benchmark's expected format.
+        instruction = node.action.instruction_prompt
+        answer_format = task.get('answer_format', '')
+        if answer_format and node_id in workflow.exit_nodes:
+            instruction = f'{instruction}\n\n{answer_format}'
+
         # Build AgentConfig from node settings + extras for prompt building
         config_kwargs: dict[str, Any] = {
             'model': node.agent_config.get('model', 'gpt-4o-mini'),
             'max_steps': node.agent_config.get('max_steps', node.action.max_steps),
             'system_prompt': node.role.system_prompt,
-            'instruction_prompt': node.action.instruction_prompt,
+            'instruction_prompt': instruction,
         }
         if node.agent_config.get('temperature') is not None:
             config_kwargs['temperature'] = node.agent_config['temperature']

@@ -17,6 +17,14 @@ class HotpotQA(Benchmark):
         location = os.path.normpath(os.path.expanduser(data_folder or '~/.sema/benchmarks'))
         super().__init__(name=type(self).__name__.lower(), data_folder=location)
 
+    @property
+    def answer_format(self) -> str:
+        return (
+            'IMPORTANT: Respond with ONLY the final answer in as few words as possible. '
+            'Do NOT include explanations, reasoning, verification, or full sentences. '
+            'For example, if the answer is "Spy Kids", respond with exactly: Spy Kids'
+        )
+
     def load_data(self, force_reload: bool = False) -> None:
         '''
         Load the HotpotQA dataset into the benchmark.

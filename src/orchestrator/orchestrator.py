@@ -142,6 +142,7 @@ class SEMAOrchestrator:
                 task = {
                     'question': item['question'],
                     'context': self._stringify_context(item.get('context', '')),
+                    'answer_format': getattr(benchmark, 'answer_format', ''),
                 }
                 executor = WorkflowExecutor()
                 result = await executor.execute(wf, task)

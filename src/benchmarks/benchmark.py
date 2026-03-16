@@ -91,6 +91,16 @@ class Benchmark(ABC):
             logger.error('Test data not loaded. Please call load_data() first.')
             # raise ValueError('Test data not loaded. Please call load_data() first.')
         return self._test_data
+    
+    @property
+    def answer_format(self) -> str:
+        '''Instruction describing the expected answer format.
+
+        Returned string is injected into exit-node prompts so the agent
+        produces output that matches the benchmark's evaluation metric.
+        Subclasses should override this for benchmark-specific formatting.
+        '''
+        return ''
 
 
 class DatasetType(Enum):
