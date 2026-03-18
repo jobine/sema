@@ -1,7 +1,7 @@
 from typing import Any, Dict
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from openai import AsyncOpenAI
-from .base_model import LLMConfig, AsyncBaseLLM
+from .base import LLMConfig, AsyncBaseLLM
 
 
 class AsyncOpenAILLM(AsyncBaseLLM):

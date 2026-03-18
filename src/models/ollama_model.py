@@ -2,7 +2,7 @@ import os
 from typing import Any, Dict
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from ollama import AsyncClient as AsyncOllama
-from .base_model import LLMConfig, AsyncBaseLLM
+from .base import LLMConfig, AsyncBaseLLM
 
 
 class AsyncOllamaLLM(AsyncBaseLLM):

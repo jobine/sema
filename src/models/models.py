@@ -2,7 +2,7 @@
 
 from pathlib import Path
 from typing import Any, ClassVar, Dict, Type
-from .base_model import LLMConfig, AsyncBaseLLM
+from .base import LLMConfig, AsyncBaseLLM
 from .claude_model import AsyncAnthropicLLM
 from .openai_model import AsyncOpenAILLM
 from .ollama_model import AsyncOllamaLLM
