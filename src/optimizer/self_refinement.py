@@ -18,7 +18,7 @@ class SelfRefinementConfig(OptimizerConfig):
     '''Configuration for self-refinement optimizer.'''
 
     max_reflection_rounds: int = Field(default=3, ge=1)
-    critique_model: str = Field(default='gpt-4o-mini')
+    critique_model: str = Field(default='', description='LLM model for self-critique; falls back to optimizer_model')
 
 
 class SelfRefinementOptimizer(Optimizer):
@@ -57,7 +57,7 @@ class SelfRefinementOptimizer(Optimizer):
 
         self._stats['refinements_attempted'] += 1
         prompt = self._build_critique_prompt(workflow, failures)
-        response = await self._call_llm(self.config.critique_model, prompt)
+        response = await self._call_llm(self.config.critique_model or self.config.optimizer_model, prompt)
 
         if not response:
             return self._deep_copy_workflow(workflow)

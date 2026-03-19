@@ -132,6 +132,23 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help='Specific generation checkpoint to resume from (requires --resume).',
     )
 
+    # LLM model overrides
+    parser.add_argument(
+        '--bootstrap-model',
+        default='gpt-4o-mini',
+        help='LLM model used to design the seed workflow when --template=auto.',
+    )
+    parser.add_argument(
+        '--executor-model',
+        default='gpt-4o-mini',
+        help='Default LLM model for workflow node agents during execution.',
+    )
+    parser.add_argument(
+        '--optimizer-model',
+        default='gpt-4o-mini',
+        help='Default LLM model for all optimizer calls (mutation, crossover, etc.).',
+    )
+
     return parser.parse_args(argv)
 
 
@@ -164,6 +181,9 @@ async def main(args: argparse.Namespace) -> None:
         environment=env,
         optimizer_type=args.optimizer,
         seed_template=args.template,
+        bootstrap_model=args.bootstrap_model,
+        executor_model=args.executor_model,
+        optimizer_model=args.optimizer_model,
         population_size=args.population_size,
         max_generations=args.generations,
         eval_samples_per_generation=args.samples,
@@ -176,6 +196,9 @@ async def main(args: argparse.Namespace) -> None:
     print(f'Goal       : {config.goal}')
     print(f'Optimizer  : {config.optimizer_type}')
     print(f'Template   : {config.seed_template}')
+    print(f'Bootstrap  : {config.bootstrap_model}')
+    print(f'Executor   : {config.executor_model}')
+    print(f'Opt model  : {config.optimizer_model}')
     print(f'Population : {config.population_size}  workflows')
     print(f'Generations: {config.max_generations}  max')
     print(f'Samples    : {config.eval_samples_per_generation}  per generation')

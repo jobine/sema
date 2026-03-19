@@ -18,7 +18,7 @@ from .population import Population
 class PromptBreedingConfig(OptimizerConfig):
     '''Configuration for prompt breeding optimizer.'''
 
-    breeding_model: str = Field(default='gpt-4o-mini')
+    breeding_model: str = Field(default='', description='LLM model for prompt breeding; falls back to optimizer_model')
     num_failure_examples: int = Field(default=3, ge=1)
 
 
@@ -81,7 +81,7 @@ class PromptBreedingOptimizer(Optimizer):
             'Return ONLY the JSON object.'
         )
 
-        response = await self._call_llm(self.config.breeding_model, prompt)
+        response = await self._call_llm(self.config.breeding_model or self.config.optimizer_model, prompt)
         if not response:
             return p1_prompts
 

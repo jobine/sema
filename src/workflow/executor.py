@@ -89,7 +89,8 @@ class WorkflowExecutor:
     Blank workflows (no nodes) return an empty WorkflowResult immediately.
     '''
 
-    def __init__(self) -> None:
+    def __init__(self, default_model: str = 'gpt-4o-mini') -> None:
+        self._default_model = default_model
         self._trace: list[dict[str, Any]] = []
 
     # -----------------------------------------------------------------------
@@ -206,7 +207,7 @@ class WorkflowExecutor:
 
         # Build AgentConfig from node settings + extras for prompt building
         config_kwargs: dict[str, Any] = {
-            'model': node.agent_config.get('model', 'gpt-4o-mini'),
+            'model': node.agent_config.get('model', self._default_model),
             'max_steps': node.agent_config.get('max_steps', node.action.max_steps),
             'system_prompt': node.role.system_prompt,
             'instruction_prompt': instruction,

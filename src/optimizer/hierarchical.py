@@ -24,7 +24,7 @@ class HierarchicalConfig(OptimizerConfig):
     macro_config: MCTSConfig = Field(default_factory=MCTSConfig)
     meso_interval: int = Field(default=2, ge=1)
     macro_interval: int = Field(default=5, ge=1)
-    goal_topo_model: str = Field(default='gpt-4o-mini')
+    goal_topo_model: str = Field(default='', description='LLM model for goal-driven topology mutation; falls back to optimizer_model')
 
 
 class HierarchicalOptimizer(Optimizer):
@@ -72,7 +72,7 @@ class HierarchicalOptimizer(Optimizer):
                     for t in trajectories if t.env_reward < 0.5
                 ][:3]
                 mutated = await self.goal_topo_mutator.mutate(
-                    target, self.config.goal_topo_model, failures, target.fitness
+                    target, self.config.goal_topo_model or self.config.optimizer_model, failures, target.fitness
                 )
                 mutated.fitness = 0.0
                 mutated.fitness_history = []

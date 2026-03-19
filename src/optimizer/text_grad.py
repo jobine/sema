@@ -16,7 +16,7 @@ from .population import Population
 class TextGradConfig(OptimizerConfig):
     '''Configuration for textual gradient descent optimizer.'''
 
-    gradient_model: str = Field(default='gpt-4o-mini')
+    gradient_model: str = Field(default='', description='LLM model for gradient computation; falls back to optimizer_model')
     step_size: str = Field(default='medium')  # "small" | "medium" | "large"
 
 
@@ -47,7 +47,7 @@ class TextGradOptimizer(Optimizer):
             'Describe the direction of change concisely (1-3 sentences).'
         )
         self._stats['gradients_computed'] += 1
-        return await self._call_llm(self.config.gradient_model, prompt)
+        return await self._call_llm(self.config.gradient_model or self.config.optimizer_model, prompt)
 
     async def _apply_gradient(self, workflow: Workflow, gradient: str) -> Workflow:
         '''Apply gradient: ask LLM to rewrite prompts guided by gradient text.'''
@@ -67,7 +67,7 @@ class TextGradOptimizer(Optimizer):
                 'Rewrite both prompts following the gradient direction. '
                 'Return JSON with keys "system_prompt" and "instruction_prompt".'
             )
-            response = await self._call_llm(self.config.gradient_model, prompt)
+            response = await self._call_llm(self.config.gradient_model or self.config.optimizer_model, prompt)
             if response:
                 text = response.strip()
                 if '```' in text:

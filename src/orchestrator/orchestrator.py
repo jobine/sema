@@ -39,6 +39,7 @@ class SEMAOrchestrator:
         self._benchmark = self.config.environment.get_benchmark()
         self._benchmark.load_data()
         population = await self._build_seed_population()
+        self._propagate_optimizer_model()
         optimizer = OptimizerRegistry.create(
             self.config.optimizer_type, self.config.optimizer_config, population
         )
@@ -56,6 +57,7 @@ class SEMAOrchestrator:
             for wf in population.workflows:
                 wf.fitness = 0.0
                 wf.fitness_history = []
+        self._propagate_optimizer_model()
         optimizer = OptimizerRegistry.create(
             self.config.optimizer_type, self.config.optimizer_config, population
         )
@@ -64,6 +66,10 @@ class SEMAOrchestrator:
     # -----------------------------------------------------------------------
     # Internal helpers
     # -----------------------------------------------------------------------
+
+    def _propagate_optimizer_model(self) -> None:
+        '''Set optimizer_model on the optimizer config from the top-level SEMAConfig.'''
+        self.config.optimizer_config.optimizer_model = self.config.optimizer_model
 
     async def _run_loop(
         self, population: Population, optimizer: Any, start_gen: int
@@ -144,7 +150,7 @@ class SEMAOrchestrator:
                     'context': self._stringify_context(item.get('context', '')),
                     'answer_format': getattr(benchmark, 'answer_format', ''),
                 }
-                executor = WorkflowExecutor()
+                executor = WorkflowExecutor(default_model=self.config.executor_model)
                 result = await executor.execute(wf, task)
                 ground_truth = item.get('answer', item.get('label', ''))
                 eval_result = await benchmark.evaluate(result.answer, str(ground_truth))

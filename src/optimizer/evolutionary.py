@@ -420,7 +420,7 @@ class EvolutionaryConfig(OptimizerConfig):
     tournament_k: int = Field(default=3, ge=1)
     mutation_levels: list[str] = Field(default_factory=lambda: ['micro', 'meso', 'macro'])
     macro_mutation_rate: float = Field(default=0.05, ge=0.0, le=1.0)
-    meso_model: str = Field(default='gpt-4o-mini')
+    meso_model: str = Field(default='', description='LLM model for meso/macro mutations; falls back to optimizer_model')
 
 
 class EvolutionaryOptimizer(Optimizer):
@@ -492,7 +492,7 @@ class EvolutionaryOptimizer(Optimizer):
         levels = self.config.mutation_levels
         macro_rate = self.config.macro_mutation_rate
         mutation_rate = self.config.mutation_rate
-        meso_model = self.config.meso_model
+        meso_model = self.config.meso_model or self.config.optimizer_model
         stats = self._stats
 
         async def maybe_macro_and_meso(child: Workflow) -> Workflow:

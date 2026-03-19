@@ -17,7 +17,7 @@ from .population import Population
 class LLMOptimizerConfig(OptimizerConfig):
     '''Configuration for LLM-based (OPRO-style) optimizer.'''
 
-    meta_llm_model: str = Field(default='gpt-4o-mini')
+    meta_llm_model: str = Field(default='', description='LLM model for meta-optimization; falls back to optimizer_model')
     num_candidates: int = Field(default=5, ge=1)
     context_window: int = Field(default=20, ge=1)
 
@@ -80,7 +80,7 @@ class LLMOptimizer(Optimizer):
 
     async def _generate_candidate(self, prompt: str, generation: int, parent_ids: list[str]) -> Workflow | None:
         self._stats['calls_made'] += 1
-        response = await self._call_llm(self.config.meta_llm_model, prompt)
+        response = await self._call_llm(self.config.meta_llm_model or self.config.optimizer_model, prompt)
         if not response:
             return None
 

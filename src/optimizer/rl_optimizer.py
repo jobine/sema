@@ -22,7 +22,7 @@ class RLOptimizerConfig(OptimizerConfig):
     policy_type: str = Field(default='bandit')  # "bandit" | "prompt_gradient"
     epsilon: float = Field(default=0.1, ge=0.0, le=1.0)
     ucb_c: float = Field(default=1.41, ge=0.0)
-    reinforce_model: str = Field(default='gpt-4o-mini')
+    reinforce_model: str = Field(default='', description='LLM model for RL updates; falls back to optimizer_model')
 
 
 class RLOptimizer(Optimizer):
@@ -100,7 +100,7 @@ class RLOptimizer(Optimizer):
             'Return only the revised workflow JSON.'
         )
         import json as json_mod
-        response = await self._call_llm(self.config.reinforce_model, prompt)
+        response = await self._call_llm(self.config.reinforce_model or self.config.optimizer_model, prompt)
         if not response:
             return self._deep_copy_workflow(workflow)
 

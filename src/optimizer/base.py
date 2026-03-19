@@ -21,6 +21,7 @@ class OptimizerConfig(BaseModel):
     population_size: int = Field(default=10, ge=1, description='Number of workflows in population')
     max_generations: int = Field(default=50, ge=1, description='Maximum number of generations')
     elitism_rate: float = Field(default=0.2, ge=0.0, le=1.0, description='Fraction of elite workflows to preserve')
+    optimizer_model: str = Field(default='gpt-4o-mini', description='Default LLM model for optimizer calls')
 
 
 class Optimizer(ABC):
