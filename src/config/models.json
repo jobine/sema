@@ -6,9 +6,9 @@
         "api_key": "",
         "temperature": 1.0
     },
-    "gemini-3-pro-preview": {
+    "gemini-3.1-pro-preview": {
         "provider": "google",
-        "description": "Access to Google's Gemini 3 Pro language model.",
+        "description": "Access to Google's Gemini 3.1 Pro language model.",
         "api_key": "",
         "temperature": 1.0
     },
@@ -36,6 +36,13 @@
     "claude-opus-4-5": {
         "provider": "anthropic",
         "description": "Access to Anthropic's Claude Opus 4.5 model.",
+        "base_url": "https://api.anthropic.com",
+        "api_key": "",
+        "temperature": 1.0
+    },
+    "claude-sonnet-4-6": {
+        "provider": "anthropic",
+        "description": "Access to Anthropic's Claude Sonnet 4.6 model.",
         "base_url": "https://api.anthropic.com",
         "api_key": "",
         "temperature": 1.0

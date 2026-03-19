@@ -135,17 +135,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     # LLM model overrides
     parser.add_argument(
         '--bootstrap-model',
-        default='gpt-4o-mini',
+        default='claude-sonnet-4-6',
         help='LLM model used to design the seed workflow when --template=auto.',
     )
     parser.add_argument(
         '--executor-model',
-        default='gpt-4o-mini',
+        default='claude-sonnet-4-6',
         help='Default LLM model for workflow node agents during execution.',
     )
     parser.add_argument(
         '--optimizer-model',
-        default='gpt-4o-mini',
+        default='claude-sonnet-4-6',
         help='Default LLM model for all optimizer calls (mutation, crossover, etc.).',
     )
 
