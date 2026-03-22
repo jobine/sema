@@ -16,6 +16,7 @@ dependencies = [
     "google-genai",
     "google-genai[aiohttp]",
     "anthropic",
+    "zai-sdk",
     "pydantic>=2.0.0",
 ]
 

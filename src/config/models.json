@@ -46,5 +46,19 @@
         "base_url": "https://api.anthropic.com",
         "api_key": "",
         "temperature": 1.0
+    },
+    "glm-4-plus": {
+        "provider": "zhipu",
+        "description": "Access to Zhipu's GLM-4 Plus language model.",
+        "base_url": "https://open.bigmodel.cn/api/paas/v4",
+        "api_key": "",
+        "temperature": 0.95
+    },
+    "glm-5": {
+        "provider": "zhipu",
+        "description": "Access to Zhipu's GLM-5 language model.",
+        "base_url": "https://open.bigmodel.cn/api/paas/v4",
+        "api_key": "",
+        "temperature": 0.95
     }
 }

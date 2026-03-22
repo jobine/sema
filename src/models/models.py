@@ -7,6 +7,7 @@ from .claude_model import AsyncAnthropicLLM
 from .openai_model import AsyncOpenAILLM
 from .ollama_model import AsyncOllamaLLM
 from .gemini_model import AsyncGeminiLLM
+from .zhipu_model import AsyncZhipuLLM
 
 
 class AsyncLLM:
@@ -21,6 +22,8 @@ class AsyncLLM:
 		'google': AsyncGeminiLLM,
 		'claude': AsyncAnthropicLLM,
 		'anthropic': AsyncAnthropicLLM,
+		'zhipu': AsyncZhipuLLM,
+		'zhipuai': AsyncZhipuLLM,
 	}
 
 	def __new__(
