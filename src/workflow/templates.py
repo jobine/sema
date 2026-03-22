@@ -38,6 +38,10 @@ class WorkflowTemplate:
                 text = text[start:end]
             wf = Workflow.model_validate(json.loads(text))
             if wf.nodes:
+                if not wf.goal:
+                    wf.goal = goal
+                if not wf.environment:
+                    wf.environment = environment
                 return wf
         except Exception:
             pass

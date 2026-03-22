@@ -146,7 +146,7 @@ class MCTSOptimizer(Optimizer):
             current.total_reward += reward
             current = current.parent
 
-    def _build_workflow_from_path(self, path: list[_MCTSNode]) -> Workflow:
+    def _build_workflow_from_path(self, path: list[_MCTSNode], goal: str = '', environment: str = '') -> Workflow:
         '''Construct a Workflow from the decisions encoded in the MCTS path.'''
         num_nodes = 2
         roles = ['researcher', 'analyst']
@@ -200,6 +200,8 @@ class MCTSOptimizer(Optimizer):
             edges=edges,
             entry_nodes=entry,
             exit_nodes=exit_,
+            goal=goal,
+            environment=environment,
         )
 
     # -----------------------------------------------------------------------
@@ -241,11 +243,16 @@ class MCTSOptimizer(Optimizer):
 
         new_workflows: list[Workflow] = [self._deep_copy_workflow(wf) for wf in elite]
 
+        # Inherit goal/environment from existing population
+        ref = next((w for w in population.workflows if w.goal), None)
+        goal = ref.goal if ref else ''
+        environment = ref.environment if ref else ''
+
         # Generate diverse workflows from top MCTS paths
         top_paths = self._get_top_paths(self.config.rollout_samples)
         for i in range(n_new):
             path_nodes = top_paths[i % len(top_paths)] if top_paths else [self._root]
-            wf = self._build_workflow_from_path(path_nodes)
+            wf = self._build_workflow_from_path(path_nodes, goal=goal, environment=environment)
             wf.generation = population.generation + 1
             new_workflows.append(wf)
 
