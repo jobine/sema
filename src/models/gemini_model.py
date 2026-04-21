@@ -25,7 +25,7 @@ class AsyncGeminiLLM(AsyncBaseLLM):
 	async def __call__(self, prompt: str, **kwargs: Any) -> str:
 		'''Call the Gemini LLM asynchronously and return text.'''
 		payload: Dict[str, Any] = {
-			'model': self.config.name,
+			'model': self.config.id,
 			'contents': prompt,
 		}
 

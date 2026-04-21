@@ -55,6 +55,10 @@ def setup_logging(log_file: str = None, level: int = logging.DEBUG) -> None:
     
     root_logger.setLevel(level)
 
+    # Suppress noisy third-party debug logs
+    for noisy in ('httpx', 'httpcore', 'openai._base_client'):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
+
     # Console handler with colored formatter
     console_handler = logging.StreamHandler()
     console_formatter = ColoredFormatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')

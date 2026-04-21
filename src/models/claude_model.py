@@ -23,7 +23,7 @@ class AsyncAnthropicLLM(AsyncBaseLLM):
 	async def __call__(self, prompt: str, **kwargs: Any) -> str:
 		'''Call the Anthropic Claude LLM asynchronously via Messages API and return text.'''
 		payload: Dict[str, Any] = {
-			'model': self.config.name,
+			'model': self.config.id,
 			'messages': [{'role': 'user', 'content': prompt}],
 			'max_tokens': 4096,
 		}

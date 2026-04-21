@@ -9,7 +9,7 @@ from typing import Any, ClassVar, Dict
 class LLMConfig:
 	'''Configuration for a language model loaded from models.json.'''
 
-	name: str
+	id: str
 	provider: str
 	description: str
 	base_url: str
@@ -46,7 +46,7 @@ class LLMConfig:
 
 		entry = data[model]
 		instance = cls(
-			name=model,
+			id=entry.get('id', model),
 			provider=entry.get('provider', entry.get('type', '')),
 			description=entry.get('description', ''),
 			base_url=entry.get('base_url', ''),

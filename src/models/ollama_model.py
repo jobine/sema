@@ -54,7 +54,7 @@ class AsyncOllamaLLM(AsyncBaseLLM):
 
 		# Call Ollama chat API
 		response = await self._client.chat(
-			model=self.config.name,
+			model=self.config.id,
 			messages=messages,
 			options=options if options else None,
 			**kwargs
