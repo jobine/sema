@@ -75,22 +75,32 @@ class Benchmark(ABC):
     def train_data(self) -> List[dict] | None:
         if self._train_data is None:
             logger.error('Train data not loaded. Please call load_data() first.')
-            # raise ValueError("Train data not loaded. Please call load_data() first.")
+            # raise ValueError('Train data not loaded. Please call load_data() first.')
         return self._train_data
     
     @property
     def validate_data(self) -> List[dict] | None:
         if self._validate_data is None:
             logger.error('Validate data not loaded. Please call load_data() first.')
-            # raise ValueError("Validate data not loaded. Please call load_data() first.")
+            # raise ValueError('Validate data not loaded. Please call load_data() first.')
         return self._validate_data
     
     @property
     def test_data(self) -> List[dict] | None:
         if self._test_data is None:
             logger.error('Test data not loaded. Please call load_data() first.')
-            # raise ValueError("Test data not loaded. Please call load_data() first.")
+            # raise ValueError('Test data not loaded. Please call load_data() first.')
         return self._test_data
+    
+    @property
+    def answer_format(self) -> str:
+        '''Instruction describing the expected answer format.
+
+        Returned string is injected into exit-node prompts so the agent
+        produces output that matches the benchmark's evaluation metric.
+        Subclasses should override this for benchmark-specific formatting.
+        '''
+        return ''
 
 
 class DatasetType(Enum):

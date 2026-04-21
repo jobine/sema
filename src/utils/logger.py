@@ -6,22 +6,21 @@
 #
 # Example:
 #   # main.py
-#   from utils.logging import setup_logging
+#   from utils.logger import setup_logging
 #   setup_logging()
 #
 #   # benchmarks/utils.py
 #   import logging
 #   logger = logging.getLogger(__name__)
-#   logger.info("This will be logged with module name 'benchmarks.utils'")
+#   logger.info('This will be logged with module name "benchmarks.utils"')
 
 import os
-import sys
 import logging
 from contextlib import contextmanager
 from logging import Logger
 
 class ColoredFormatter(logging.Formatter):
-    """Custom formatter to add colors to log levels."""
+    '''Custom formatter to add colors to log levels.'''
 
     # ANSI escape codes for colors
     COLORS = {
@@ -40,14 +39,14 @@ class ColoredFormatter(logging.Formatter):
 
 
 def setup_logging(log_file: str = None, level: int = logging.DEBUG) -> None:
-    """
+    '''
     Setup root logger with colored console output and optional file logging.
     Call this once at application startup.
     
     Note: For proper UTF-8 support on Windows, set environment variable:
         PYTHONIOENCODING=utf-8
     Or run Python with: python -X utf8
-    """
+    '''
     root_logger = logging.getLogger()
     
     # Avoid adding multiple handlers
@@ -55,6 +54,10 @@ def setup_logging(log_file: str = None, level: int = logging.DEBUG) -> None:
         return
     
     root_logger.setLevel(level)
+
+    # Suppress noisy third-party debug logs
+    for noisy in ('httpx', 'httpcore', 'openai._base_client'):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
 
     # Console handler with colored formatter
     console_handler = logging.StreamHandler()
@@ -72,22 +75,22 @@ def setup_logging(log_file: str = None, level: int = logging.DEBUG) -> None:
 
 
 def get_logger(name: str) -> Logger:
-    """
+    '''
     Get a logger with the specified name.
     Make sure setup_logging() is called before using this.
-    """
+    '''
     return logging.getLogger(name)
 
 
 @contextmanager
 def suppress_logging(level: int = logging.ERROR, logger: Logger | None = None):
-    """
+    '''
     Temporarily raise the log threshold to the specified level within a context.
 
     Args:
         level: Temporary log level to apply. Messages below this level are suppressed.
         logger: Target logger. Defaults to the root logger when not provided.
-    """
+    '''
     target_logger = logger or logging.getLogger()
     original_level = target_logger.level
     target_logger.setLevel(level)
@@ -106,7 +109,7 @@ setup_logging(_default_log_path)
 
 
 # Example usage:
-if __name__ == "__main__":
+if __name__ == '__main__':
     # Backward compatible: export a default logger instance
     logger = get_logger('SEMA')
 

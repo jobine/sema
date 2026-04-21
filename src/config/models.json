@@ -1,18 +1,21 @@
 {
     "gpt-4o-mini": {
+        "id": "gpt-4o-mini",
         "provider": "openai",
         "description": "Provides access to OpenAI's language models including GPT-3 and GPT-4.",
         "base_url": "https://api.openai.com/v1",
         "api_key": "",
         "temperature": 1.0
     },
-    "gemini-3-pro-preview": {
+    "gemini-3.1-pro-preview": {
+        "id": "gemini-3.1-pro-preview",
         "provider": "google",
-        "description": "Access to Google's Gemini 3 Pro language model.",
+        "description": "Access to Google's Gemini 3.1 Pro language model.",
         "api_key": "",
         "temperature": 1.0
     },
     "gpt-oss:20b": {
+        "id": "gpt-oss:20b",
         "provider": "ollama",
         "description": "Local Ollama model gpt-oss:20b running on localhost.",
         "base_url": "http://localhost:11434",
@@ -20,6 +23,7 @@
         "temperature": 1.0
     },
     "llama3:8b": {
+        "id": "llama3:8b",
         "provider": "ollama",
         "description": "Local Ollama model llama3-8b running on localhost.",
         "base_url": "http://localhost:11434",
@@ -27,6 +31,7 @@
         "temperature": 1.0
     },
     "gemma:7b": {
+        "id": "gemma:7b",
         "provider": "ollama",
         "description": "Local Ollama model gemma running on localhost.",
         "base_url": "http://localhost:11434",
@@ -34,10 +39,43 @@
         "temperature": 1.0
     },
     "claude-opus-4-5": {
+        "id": "claude-opus-4-5",
         "provider": "anthropic",
         "description": "Access to Anthropic's Claude Opus 4.5 model.",
         "base_url": "https://api.anthropic.com",
         "api_key": "",
+        "temperature": 1.0
+    },
+    "claude-sonnet-4-6": {
+        "id": "claude-sonnet-4-6",
+        "provider": "anthropic",
+        "description": "Access to Anthropic's Claude Sonnet 4.6 model.",
+        "base_url": "https://api.anthropic.com",
+        "api_key": "",
+        "temperature": 1.0
+    },
+    "glm-4-plus": {
+        "id": "glm-4-plus",
+        "provider": "zhipu",
+        "description": "Access to Zhipu's GLM-4 Plus language model.",
+        "base_url": "https://open.bigmodel.cn/api/paas/v4",
+        "api_key": "",
+        "temperature": 0.95
+    },
+    "glm-5": {
+        "id": "glm-5",
+        "provider": "zhipu",
+        "description": "Access to Zhipu's GLM-5 language model.",
+        "base_url": "https://open.bigmodel.cn/api/paas/v4",
+        "api_key": "",
+        "temperature": 0.95
+    },
+    "gemma-4-26b-a4b-it-8bit": {
+        "id": "/Users/mingzhao/mlx/models/gemma-4-26b-a4b-it-8bit",
+        "provider": "mlx",
+        "description": "Access to Google's Gemma 4 26B A4B IT 8-bit model.",
+        "base_url": "http://localhost:8080/v1",
+        "api_key": "mlx",
         "temperature": 1.0
     }
 }

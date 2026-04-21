@@ -1,7 +1,7 @@
 from typing import Any, Dict
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from anthropic import AsyncAnthropic
-from .base_model import LLMConfig, AsyncBaseLLM
+from .base import LLMConfig, AsyncBaseLLM
 
 
 class AsyncAnthropicLLM(AsyncBaseLLM):
@@ -23,7 +23,7 @@ class AsyncAnthropicLLM(AsyncBaseLLM):
 	async def __call__(self, prompt: str, **kwargs: Any) -> str:
 		'''Call the Anthropic Claude LLM asynchronously via Messages API and return text.'''
 		payload: Dict[str, Any] = {
-			'model': self.config.name,
+			'model': self.config.id,
 			'messages': [{'role': 'user', 'content': prompt}],
 			'max_tokens': 4096,
 		}

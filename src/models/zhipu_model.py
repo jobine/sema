@@ -1,37 +1,38 @@
+import asyncio
 from typing import Any, Dict
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
-from openai import AsyncOpenAI
+from zai import ZhipuAiClient
 from .base import LLMConfig, AsyncBaseLLM
 
 
-class AsyncOpenAILLM(AsyncBaseLLM):
-	'''Async wrapper for OpenAI-compatible APIs.'''
+class AsyncZhipuLLM(AsyncBaseLLM):
+	'''Async wrapper for Zhipu GLM API (zai-sdk).'''
 
 	def __init__(
 		self,
 		config: LLMConfig,
 		*,
-		client: AsyncOpenAI | None = None,
+		client: ZhipuAiClient | None = None,
 	) -> None:
 		super().__init__(config)
-		self._client = client or AsyncOpenAI(
-			api_key=self.config.api_key or None,
-			base_url=self.config.base_url or None,
-		)
+		self._client = client or ZhipuAiClient(api_key=self.config.api_key or None)
 
 	@retry(reraise=True, stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10), retry=retry_if_exception_type(Exception))
 	async def __call__(self, prompt: str, **kwargs: Any) -> str:
-		'''Call the LLM asynchronously via OpenAI Chat Completions API and return text.'''
+		'''Call the Zhipu GLM LLM asynchronously and return text.'''
 		payload: Dict[str, Any] = {
 			'model': self.config.id,
 			'messages': [{'role': 'user', 'content': prompt}],
-			'temperature': self.config.temperature,
 		}
-		
+		if self.config.temperature is not None:
+			payload['temperature'] = self.config.temperature
+
 		payload_override: Dict[str, Any] = kwargs.pop('payload_override', {})
 		payload.update(payload_override)
 
-		response = await self._client.chat.completions.create(**payload)
+		response = await asyncio.to_thread(
+			self._client.chat.completions.create, **payload
+		)
 		return self._extract_content(response)
 
 	@staticmethod

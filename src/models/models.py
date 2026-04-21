@@ -2,11 +2,13 @@
 
 from pathlib import Path
 from typing import Any, ClassVar, Dict, Type
-from .base_model import LLMConfig, AsyncBaseLLM
+from .base import LLMConfig, AsyncBaseLLM
 from .claude_model import AsyncAnthropicLLM
 from .openai_model import AsyncOpenAILLM
 from .ollama_model import AsyncOllamaLLM
 from .gemini_model import AsyncGeminiLLM
+from .zhipu_model import AsyncZhipuLLM
+from .mlx_model import AsyncMLXLLM
 
 
 class AsyncLLM:
@@ -17,10 +19,13 @@ class AsyncLLM:
 		'azure': AsyncOpenAILLM,
 		'azure_openai': AsyncOpenAILLM,
 		'ollama': AsyncOllamaLLM,
+		'mlx': AsyncMLXLLM,
 		'gemini': AsyncGeminiLLM,
 		'google': AsyncGeminiLLM,
 		'claude': AsyncAnthropicLLM,
 		'anthropic': AsyncAnthropicLLM,
+		'zhipu': AsyncZhipuLLM,
+		'zhipuai': AsyncZhipuLLM,
 	}
 
 	def __new__(

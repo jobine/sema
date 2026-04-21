@@ -1,7 +1,7 @@
 from typing import Any, Dict
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from google import genai
-from .base_model import LLMConfig, AsyncBaseLLM
+from .base import LLMConfig, AsyncBaseLLM
 
 
 class AsyncGeminiLLM(AsyncBaseLLM):
@@ -25,7 +25,7 @@ class AsyncGeminiLLM(AsyncBaseLLM):
 	async def __call__(self, prompt: str, **kwargs: Any) -> str:
 		'''Call the Gemini LLM asynchronously and return text.'''
 		payload: Dict[str, Any] = {
-			'model': self.config.name,
+			'model': self.config.id,
 			'contents': prompt,
 		}
 
