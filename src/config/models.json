@@ -65,7 +65,7 @@
         "provider": "openai",
         "description": "Access to Google's Gemma 4 26B A4B IT 8-bit model.",
         "base_url": "http://localhost:8080/v1",
-        "api_key": "",
+        "api_key": "none",
         "temperature": 1.0
     }
 }

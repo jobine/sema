@@ -68,7 +68,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
     parser.add_argument(
         '--experiment-name',
-        default='hotpotqa_sema_glm_4_plus',
+        default='hotpotqa_sema_gemma_4_26b_a4b_it_8bit',
         help='Name of the experiment (used for checkpoint directory).',
     )
     parser.add_argument(
@@ -135,17 +135,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     # LLM model overrides
     parser.add_argument(
         '--bootstrap-model',
-        default='glm-4-plus',
+        default='gemma-4-26b-a4b-it-8bit',
         help='LLM model used to design the seed workflow when --template=auto.',
     )
     parser.add_argument(
         '--executor-model',
-        default='glm-4-plus',
+        default='gemma-4-26b-a4b-it-8bit',
         help='Default LLM model for workflow node agents during execution.',
     )
     parser.add_argument(
         '--optimizer-model',
-        default='glm-4-plus',
+        default='gemma-4-26b-a4b-it-8bit',
         help='Default LLM model for all optimizer calls (mutation, crossover, etc.).',
     )
 

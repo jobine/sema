@@ -10,6 +10,9 @@ from pydantic import BaseModel, Field, ConfigDict
 
 from ..agents.agent import Agent, AgentConfig, AgentState
 from .schema import Workflow, WorkflowNode
+from ..utils import get_logger
+
+logger = get_logger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -57,10 +60,14 @@ class _NodeAgent(Agent):
 
     async def step(self, state: AgentState) -> AgentState:
         prompt = self.build_prompt(state)
+        model = self.config.model
+        logger.debug(f'LLM request → model={model}, prompt_len={len(prompt)}')
         try:
             response = await self.llm(prompt)
             state.answer = str(response).strip() if response else ''
+            logger.debug(f'LLM response ← model={model}, answer_preview={state.answer[:120]!r}')
         except Exception as exc:
+            logger.error(f'LLM call failed (model={model}): {exc}')
             state.answer = f'[Error: {exc}]'
 
         state.steps.append({
@@ -196,6 +203,7 @@ class WorkflowExecutor:
         if node is None:
             return {'node_id': node_id, 'answer': '', 'steps': [], 'llm_calls': 0}
 
+        logger.info(f'Executing node {node_id!r} (role={node.role.name!r}, iteration={iteration})')
         t0 = time.monotonic()
 
         # For exit nodes, append answer_format instruction so the agent
@@ -226,6 +234,7 @@ class WorkflowExecutor:
         question = task.get('question', '')
 
         answer = await agent.run(question=question, context=full_context)
+        logger.info(f'Node {node_id!r} done in {round(time.monotonic() - t0, 3)}s, answer_preview={answer[:80]!r}')
 
         state = agent._state
         steps = state.steps if state else []
