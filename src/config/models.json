@@ -60,5 +60,12 @@
         "base_url": "https://open.bigmodel.cn/api/paas/v4",
         "api_key": "",
         "temperature": 0.95
+    },
+    "gemma-4-26b-a4b-it-8bit": {
+        "provider": "openai",
+        "description": "Access to Google's Gemma 4 26B A4B IT 8-bit model.",
+        "base_url": "http://localhost:8080/v1",
+        "api_key": "",
+        "temperature": 1.0
     }
 }

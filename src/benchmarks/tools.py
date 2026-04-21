@@ -28,7 +28,7 @@ def download_file(url: str, destination_path: str, max_retries: int = 3, timeout
             resp_head = requests.head(url, timeout=timeout)
             total_size = int(resp_head.headers.get('Content-Length', 0))
 
-            if resume_pos < total_size:
+            if total_size == 0 or resume_pos < total_size:
                 headers = {'Range': f'bytes={resume_pos}-'} if resume_pos > 0 else {}
                 with requests.get(url, headers=headers, stream=True, timeout=timeout) as r:
                     r.raise_for_status()
