@@ -7,6 +7,7 @@ from .claude_model import AsyncAnthropicLLM
 from .openai_model import AsyncOpenAILLM
 from .ollama_model import AsyncOllamaLLM
 from .gemini_model import AsyncGeminiLLM
+from .mlx_model import AsyncMLXLLM
 
 
 class AsyncLLM:
@@ -17,6 +18,7 @@ class AsyncLLM:
 		'azure': AsyncOpenAILLM,
 		'azure_openai': AsyncOpenAILLM,
 		'ollama': AsyncOllamaLLM,
+		'mlx': AsyncMLXLLM,
 		'gemini': AsyncGeminiLLM,
 		'google': AsyncGeminiLLM,
 		'claude': AsyncAnthropicLLM,
