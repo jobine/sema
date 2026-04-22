@@ -1,3 +1,4 @@
+import json
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 from src.models.model_usage import ModelUsage
@@ -333,3 +334,60 @@ class TestMLXUsage:
 
         assert result == "MLX answer"
         assert usage.total_prompt_tokens == 0
+
+
+class TestEndToEnd:
+    def setup_method(self):
+        ModelUsage._instance = None
+
+    @pytest.mark.asyncio
+    async def test_multiple_providers_accumulate(self, tmp_path):
+        """Multiple providers recording to the same ModelUsage singleton."""
+        from src.models.openai_model import AsyncOpenAILLM
+        from src.models.base import LLMConfig
+
+        prices = {
+            "model-a": {"input_cost_per_token": 0.00001, "output_cost_per_token": 0.00002},
+            "model-b": {"input_cost_per_token": 0.00005, "output_cost_per_token": 0.0001},
+        }
+        cache_file = tmp_path / "prices.json"
+        cache_file.write_text(json.dumps(prices), encoding="utf-8")
+        usage = ModelUsage.get_instance(pricing_path=cache_file)
+
+        for model_id, pt, ct in [("model-a", 100, 50), ("model-b", 200, 100)]:
+            config = LLMConfig(
+                id=model_id, provider="openai", description="",
+                base_url="", api_key="fake", temperature=0.7,
+            )
+            mock_usage_obj = MagicMock()
+            mock_usage_obj.prompt_tokens = pt
+            mock_usage_obj.completion_tokens = ct
+            mock_msg = MagicMock()
+            mock_msg.content = "ok"
+            mock_choice = MagicMock()
+            mock_choice.message = mock_msg
+            mock_resp = MagicMock()
+            mock_resp.choices = [mock_choice]
+            mock_resp.usage = mock_usage_obj
+
+            mock_client = AsyncMock()
+            mock_client.chat.completions.create = AsyncMock(return_value=mock_resp)
+
+            llm = AsyncOpenAILLM(config, client=mock_client)
+            await llm("prompt")
+
+        assert usage.total_prompt_tokens == 300
+        assert usage.total_completion_tokens == 150
+
+        expected_cost = (
+            100 * 0.00001 + 50 * 0.00002 +
+            200 * 0.00005 + 100 * 0.0001
+        )
+        assert abs(usage.total_cost - expected_cost) < 1e-12
+
+        summary = usage.summary()
+        assert "300" in summary
+        assert "150" in summary
+
+        report = usage.report_section()
+        assert "## Model Usage" in report
