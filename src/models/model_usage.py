@@ -7,11 +7,17 @@ import threading
 from pathlib import Path
 from typing import Any
 
+import httpx
+
 from ..utils import get_logger
 
 logger = get_logger(__name__)
 
 _DEFAULT_PRICING_PATH = Path.home() / '.sema' / 'pricing' / 'model_prices.json'
+_LITELLM_PRICES_URL = (
+	'https://raw.githubusercontent.com/BerriAI/litellm/main/'
+	'model_prices_and_context_window.json'
+)
 
 
 class ModelUsage:
@@ -43,6 +49,33 @@ class ModelUsage:
 			logger.info(f'Loaded pricing for {len(self._prices)} models from {self._pricing_path}')
 		except (json.JSONDecodeError, OSError) as exc:
 			logger.warning(f'Failed to load pricing: {exc}. All costs will be $0.')
+
+	async def update_prices(self, url: str = _LITELLM_PRICES_URL) -> None:
+		'''Fetch latest pricing from litellm GitHub and merge into local cache.
+
+		Merge strategy: {**old_local, **new_remote} — remote overwrites matching
+		keys; local-only keys (user-added models) are preserved.
+		'''
+		logger.info(f'Fetching pricing from {url} ...')
+		async with httpx.AsyncClient() as client:
+			resp = await client.get(url, timeout=30)
+			resp.raise_for_status()
+			remote_prices: dict[str, Any] = resp.json()
+
+		# Merge: old local values as base, remote overwrites
+		merged = {**self._prices, **remote_prices}
+
+		# Persist
+		self._pricing_path.parent.mkdir(parents=True, exist_ok=True)
+		with open(self._pricing_path, 'w', encoding='utf-8') as f:
+			json.dump(merged, f, indent=2)
+
+		with self._lock:
+			self._prices = merged
+		logger.info(
+			f'Pricing updated: {len(remote_prices)} remote models merged, '
+			f'{len(merged)} total models cached at {self._pricing_path}'
+		)
 
 	@classmethod
 	def get_instance(cls, pricing_path: Path | None = None) -> ModelUsage:

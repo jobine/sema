@@ -1,7 +1,7 @@
 import json
+import httpx
 import pytest
 from pathlib import Path
-from unittest.mock import patch
 from src.models.model_usage import ModelUsage
 
 
@@ -90,3 +90,58 @@ class TestModelUsage:
         usage.record("gpt-4", prompt_tokens=10, completion_tokens=5)
         assert usage.total_prompt_tokens == 10
         assert usage.total_cost == 0.0
+
+
+class TestPricingSync:
+    def setup_method(self):
+        ModelUsage._instance = None
+
+    @pytest.mark.asyncio
+    async def test_fetch_and_merge_new_keys(self, tmp_path, monkeypatch):
+        """New keys from remote are added; existing keys are updated."""
+        old = {
+            "gpt-4o-mini": {"input_cost_per_token": 0.0001, "output_cost_per_token": 0.0002},
+            "my-custom-model": {"input_cost_per_token": 0.001, "output_cost_per_token": 0.002},
+        }
+        cache_file = tmp_path / "model_prices.json"
+        cache_file.write_text(json.dumps(old), encoding="utf-8")
+
+        remote = {
+            "gpt-4o-mini": {"input_cost_per_token": 0.00005, "output_cost_per_token": 0.0001},
+            "claude-sonnet-4-20250514": {"input_cost_per_token": 0.003, "output_cost_per_token": 0.015},
+        }
+
+        usage = ModelUsage(pricing_path=cache_file)
+
+        async def fake_get(self, url, timeout=30):
+            return httpx.Response(200, json=remote, request=httpx.Request("GET", url))
+
+        monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
+        await usage.update_prices()
+
+        merged = json.loads(cache_file.read_text(encoding="utf-8"))
+
+        # Remote key overwrites old
+        assert merged["gpt-4o-mini"]["input_cost_per_token"] == 0.00005
+        # Remote-only key is added
+        assert "claude-sonnet-4-20250514" in merged
+        # Local-only key is preserved
+        assert "my-custom-model" in merged
+        assert merged["my-custom-model"]["input_cost_per_token"] == 0.001
+
+    @pytest.mark.asyncio
+    async def test_fetch_creates_file_if_missing(self, tmp_path, monkeypatch):
+        cache_file = tmp_path / "pricing" / "model_prices.json"
+        usage = ModelUsage(pricing_path=cache_file)
+
+        remote = {"gpt-4": {"input_cost_per_token": 0.01, "output_cost_per_token": 0.03}}
+
+        async def fake_get(self, url, timeout=30):
+            return httpx.Response(200, json=remote, request=httpx.Request("GET", url))
+
+        monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
+        await usage.update_prices()
+
+        assert cache_file.exists()
+        data = json.loads(cache_file.read_text(encoding="utf-8"))
+        assert "gpt-4" in data
