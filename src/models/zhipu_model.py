@@ -33,25 +33,24 @@ class AsyncZhipuLLM(AsyncBaseLLM):
 		payload.update(payload_override)
 
 		if payload.pop('stream', False):
+			stream_payload = {**payload, 'stream': True}
+
 			async def _gen() -> AsyncIterator[str]:
-				payload['stream'] = True
 				response_iter = await asyncio.to_thread(
-					self._client.chat.completions.create, **payload
+					self._client.chat.completions.create, **stream_payload
 				)
+				final_chunk = None
 				for chunk in response_iter:
-					usage = getattr(chunk, 'usage', None)
-					if usage:
-						prompt_tokens = getattr(usage, 'prompt_tokens', 0) or 0
-						completion_tokens = getattr(usage, 'completion_tokens', 0) or 0
-						ModelUsage.get_instance().record(
-							self.config.id, prompt_tokens, completion_tokens
-						)
+					if getattr(chunk, 'usage', None):
+						final_chunk = chunk
 					choices = getattr(chunk, 'choices', None)
 					if choices:
 						delta = getattr(choices[0], 'delta', None)
 						content = getattr(delta, 'content', None) if delta else None
 						if content:
 							yield content
+				if final_chunk is not None:
+					self._record_usage(final_chunk)
 
 			return _gen()
 

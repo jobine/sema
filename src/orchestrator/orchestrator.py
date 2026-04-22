@@ -123,9 +123,9 @@ class SEMAOrchestrator:
             # D: Optimize
             population = await optimizer.step(population, fitness_scores, trajectories)
 
-        # Model usage summary
         model_usage = ModelUsage.get_instance()
-        logger.info('\n' + model_usage.summary())
+        for line in model_usage.summary().splitlines():
+            logger.info(line)
 
         report = self.tracker.summary_report(extra_sections=model_usage.report_section())
         return {

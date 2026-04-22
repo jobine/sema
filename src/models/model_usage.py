@@ -23,7 +23,8 @@ _LITELLM_PRICES_URL = (
 class ModelUsage:
 	'''Global singleton that accumulates prompt/completion tokens and cost.
 
-	Thread-safe: all mutations are guarded by a threading.Lock.
+	Thread-safe: the accumulator counters are guarded by an instance lock,
+	and price-table swaps are atomic dict reassignments (safe under CPython).
 	'''
 
 	_instance: ModelUsage | None = None

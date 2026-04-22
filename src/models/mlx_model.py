@@ -48,12 +48,13 @@ class AsyncMLXLLM(AsyncBaseLLM):
 		payload.update(payload_override)
 
 		if payload.get('stream'):
-			payload['stream_options'] = {'include_usage': True}
+			stream_payload = {**payload, 'stream_options': {'include_usage': True}}
 
 			async def _gen() -> AsyncIterator[str]:
-				stream = await self._client.chat.completions.create(**payload)
+				stream = await self._client.chat.completions.create(**stream_payload)
 				async for chunk in stream:
-					if chunk.usage:
+					# OpenAI spec: usage appears only on the final chunk with empty choices.
+					if chunk.usage and not chunk.choices:
 						self._record_usage(chunk)
 					if chunk.choices and chunk.choices[0].delta.content:
 						yield chunk.choices[0].delta.content
