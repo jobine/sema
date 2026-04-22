@@ -34,21 +34,21 @@ class AsyncOpenAILLM(AsyncBaseLLM):
 		payload.update(payload_override)
 
 		if payload.get('stream'):
-			return self._stream(payload)
+			payload['stream_options'] = {'include_usage': True}
+
+			async def _gen() -> AsyncIterator[str]:
+				stream = await self._client.chat.completions.create(**payload)
+				async for chunk in stream:
+					if chunk.usage:
+						self._record_usage(chunk)
+					if chunk.choices and chunk.choices[0].delta.content:
+						yield chunk.choices[0].delta.content
+
+			return _gen()
 
 		response = await self._client.chat.completions.create(**payload)
 		self._record_usage(response)
 		return self._extract_content(response)
-
-	async def _stream(self, payload: Dict[str, Any]) -> AsyncIterator[str]:
-		'''Internal streaming implementation.'''
-		payload['stream_options'] = {'include_usage': True}
-		stream = await self._client.chat.completions.create(**payload)
-		async for chunk in stream:
-			if chunk.usage:
-				self._record_usage(chunk)
-			if chunk.choices and chunk.choices[0].delta.content:
-				yield chunk.choices[0].delta.content
 
 	def _record_usage(self, response: Any) -> None:
 		'''Extract usage from response and record to ModelUsage.'''

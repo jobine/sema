@@ -94,3 +94,44 @@ class TestOpenAIUsage:
         assert chunks == ["Hello", " world"]
         assert usage.total_prompt_tokens == 10
         assert usage.total_completion_tokens == 5
+
+
+class TestAnthropicUsage:
+    def setup_method(self):
+        ModelUsage._instance = None
+
+    @pytest.mark.asyncio
+    async def test_non_streaming_records_usage(self, tmp_path):
+        from src.models.claude_model import AsyncAnthropicLLM
+        from src.models.base import LLMConfig
+
+        cache_file = tmp_path / "prices.json"
+        cache_file.write_text("{}", encoding="utf-8")
+        usage = ModelUsage.get_instance(pricing_path=cache_file)
+
+        config = LLMConfig(
+            id="claude-sonnet-4-20250514", provider="anthropic", description="",
+            base_url="", api_key="fake", temperature=0.7,
+        )
+
+        mock_usage = MagicMock()
+        mock_usage.input_tokens = 55
+        mock_usage.output_tokens = 30
+
+        mock_block = MagicMock()
+        mock_block.type = "text"
+        mock_block.text = "Answer"
+
+        mock_response = MagicMock()
+        mock_response.content = [mock_block]
+        mock_response.usage = mock_usage
+
+        mock_client = AsyncMock()
+        mock_client.messages.create = AsyncMock(return_value=mock_response)
+
+        llm = AsyncAnthropicLLM(config, client=mock_client)
+        result = await llm("test prompt")
+
+        assert result == "Answer"
+        assert usage.total_prompt_tokens == 55
+        assert usage.total_completion_tokens == 30
