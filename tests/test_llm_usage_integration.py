@@ -219,3 +219,40 @@ class TestZhipuUsage:
         assert result == "Zhipu answer"
         assert usage.total_prompt_tokens == 60
         assert usage.total_completion_tokens == 25
+
+
+class TestOllamaUsage:
+    def setup_method(self):
+        ModelUsage._instance = None
+
+    @pytest.mark.asyncio
+    async def test_non_streaming_records_usage(self, tmp_path):
+        from src.models.ollama_model import AsyncOllamaLLM
+        from src.models.base import LLMConfig
+
+        cache_file = tmp_path / "prices.json"
+        cache_file.write_text("{}", encoding="utf-8")
+        usage = ModelUsage.get_instance(pricing_path=cache_file)
+
+        config = LLMConfig(
+            id="qwen2.5:7b", provider="ollama", description="",
+            base_url="http://localhost:11434", api_key="", temperature=0.7,
+        )
+
+        mock_message = MagicMock()
+        mock_message.content = "Ollama answer"
+
+        mock_response = MagicMock()
+        mock_response.message = mock_message
+        mock_response.prompt_eval_count = 35
+        mock_response.eval_count = 20
+
+        mock_client = AsyncMock()
+        mock_client.chat = AsyncMock(return_value=mock_response)
+
+        llm = AsyncOllamaLLM(config, client=mock_client)
+        result = await llm("test prompt")
+
+        assert result == "Ollama answer"
+        assert usage.total_prompt_tokens == 35
+        assert usage.total_completion_tokens == 20
