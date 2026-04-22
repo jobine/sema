@@ -144,8 +144,13 @@ class ExperimentTracker:
         '''Return list of per-generation stat dicts.'''
         return list(self._history)
 
-    def summary_report(self) -> str:
-        '''Generate a Markdown report, write report.md, and return the content.'''
+    def summary_report(self, extra_sections: str = '') -> str:
+        '''Generate a Markdown report, write report.md, and return the content.
+
+        Args:
+            extra_sections: Optional additional markdown content appended after
+                the improvement curve (e.g., model usage summary).
+        '''
         generations_run = len(self._history)
         best_wf_id = ''
         for entry in self._history:
@@ -172,6 +177,9 @@ class ExperimentTracker:
             f'|------------|--------------|-------------|\n'
             f'{table}\n'
         )
+
+        if extra_sections:
+            report += f'\n{extra_sections}\n'
 
         with open(self._report_path, 'w', encoding='utf-8') as f:
             f.write(report)

@@ -14,6 +14,10 @@ from ..optimizer.population import Population
 from ..optimizer.registry import OptimizerRegistry
 from ..feedback.base import Trajectory, FeedbackCollector
 from ..feedback.meta_reward import MetaRewardComputer
+from ..models.model_usage import ModelUsage
+from ..utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class SEMAOrchestrator:
@@ -119,7 +123,11 @@ class SEMAOrchestrator:
             # D: Optimize
             population = await optimizer.step(population, fitness_scores, trajectories)
 
-        report = self.tracker.summary_report()
+        # Model usage summary
+        model_usage = ModelUsage.get_instance()
+        logger.info('\n' + model_usage.summary())
+
+        report = self.tracker.summary_report(extra_sections=model_usage.report_section())
         return {
             'best_workflow': population.best_workflow,
             'best_fitness': best_fitness,
