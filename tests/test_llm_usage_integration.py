@@ -135,3 +135,44 @@ class TestAnthropicUsage:
         assert result == "Answer"
         assert usage.total_prompt_tokens == 55
         assert usage.total_completion_tokens == 30
+
+
+class TestGeminiUsage:
+    def setup_method(self):
+        ModelUsage._instance = None
+
+    @pytest.mark.asyncio
+    async def test_non_streaming_records_usage(self, tmp_path):
+        from src.models.gemini_model import AsyncGeminiLLM
+        from src.models.base import LLMConfig
+
+        cache_file = tmp_path / "prices.json"
+        cache_file.write_text("{}", encoding="utf-8")
+        usage = ModelUsage.get_instance(pricing_path=cache_file)
+
+        config = LLMConfig(
+            id="gemini-2.5-flash", provider="gemini", description="",
+            base_url="", api_key="fake", temperature=0.7,
+        )
+
+        mock_usage_metadata = MagicMock()
+        mock_usage_metadata.prompt_token_count = 80
+        mock_usage_metadata.candidates_token_count = 40
+
+        mock_response = MagicMock()
+        mock_response.text = "Gemini answer"
+        mock_response.usage_metadata = mock_usage_metadata
+
+        mock_aio = AsyncMock()
+        mock_aio.models.generate_content = AsyncMock(return_value=mock_response)
+
+        mock_client = MagicMock()
+        mock_client.aio.__aenter__ = AsyncMock(return_value=mock_aio)
+        mock_client.aio.__aexit__ = AsyncMock(return_value=False)
+
+        llm = AsyncGeminiLLM(config, client=mock_client)
+        result = await llm("test prompt")
+
+        assert result == "Gemini answer"
+        assert usage.total_prompt_tokens == 80
+        assert usage.total_completion_tokens == 40

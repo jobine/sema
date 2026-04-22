@@ -1,7 +1,9 @@
+from collections.abc import AsyncIterator
 from typing import Any, Dict
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from google import genai
 from .base import LLMConfig, AsyncBaseLLM
+from .model_usage import ModelUsage
 
 
 class AsyncGeminiLLM(AsyncBaseLLM):
@@ -22,14 +24,13 @@ class AsyncGeminiLLM(AsyncBaseLLM):
 		wait=wait_exponential(multiplier=1, min=1, max=10),
 		retry=retry_if_exception_type(Exception),
 	)
-	async def __call__(self, prompt: str, **kwargs: Any) -> str:
-		'''Call the Gemini LLM asynchronously and return text.'''
+	async def __call__(self, prompt: str, **kwargs: Any) -> str | AsyncIterator[str]:
+		'''Call the Gemini LLM. Returns str or AsyncIterator[str] for streaming.'''
 		payload: Dict[str, Any] = {
 			'model': self.config.id,
 			'contents': prompt,
 		}
 
-		# Build generation config
 		config_dict: Dict[str, Any] = {}
 		if self.config.temperature is not None:
 			config_dict['temperature'] = self.config.temperature
@@ -40,16 +41,43 @@ class AsyncGeminiLLM(AsyncBaseLLM):
 		if config_dict:
 			payload['config'] = genai.types.GenerateContentConfig(**config_dict)
 
+		stream = payload_override.pop('stream', False)
 		payload.update(payload_override)
+
+		if stream:
+			async def _gen() -> AsyncIterator[str]:
+				prompt_tokens = 0
+				completion_tokens = 0
+				async with self._client.aio as aio_client:
+					async for chunk in await aio_client.models.generate_content_stream(**payload):
+						um = getattr(chunk, 'usage_metadata', None)
+						if um:
+							prompt_tokens = getattr(um, 'prompt_token_count', 0) or 0
+							completion_tokens = getattr(um, 'candidates_token_count', 0) or 0
+						text = getattr(chunk, 'text', None)
+						if text:
+							yield text
+				ModelUsage.get_instance().record(self.config.id, prompt_tokens, completion_tokens)
+
+			return _gen()
 
 		async with self._client.aio as aio_client:
 			response = await aio_client.models.generate_content(**payload)
 
+		self._record_usage(response)
 		return self._extract_content(response)
+
+	def _record_usage(self, response: Any) -> None:
+		'''Extract usage from Gemini response and record to ModelUsage.'''
+		um = getattr(response, 'usage_metadata', None)
+		if um is None:
+			return
+		prompt_tokens = getattr(um, 'prompt_token_count', 0) or 0
+		completion_tokens = getattr(um, 'candidates_token_count', 0) or 0
+		ModelUsage.get_instance().record(self.config.id, prompt_tokens, completion_tokens)
 
 	@staticmethod
 	def _extract_content(response: Any) -> str:
-		# Handle Gemini response structure
 		if hasattr(response, 'text') and response.text:
 			return str(response.text)
 
