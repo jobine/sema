@@ -1,5 +1,6 @@
 import json
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, ClassVar, Dict
@@ -64,6 +65,10 @@ class AsyncBaseLLM(ABC):
 		self.config = config
 
 	@abstractmethod
-	async def __call__(self, prompt: str, **kwargs: Any) -> str:
-		'''Call the LLM asynchronously and return text.'''
+	async def __call__(self, prompt: str, **kwargs: Any) -> str | AsyncIterator[str]:
+		'''Call the LLM asynchronously.
+
+		Returns str for non-streaming, AsyncIterator[str] for streaming
+		(when payload_override contains stream=True).
+		'''
 		...
