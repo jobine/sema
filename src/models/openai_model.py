@@ -1,7 +1,9 @@
+from collections.abc import AsyncIterator
 from typing import Any, Dict
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from openai import AsyncOpenAI
 from .base import LLMConfig, AsyncBaseLLM
+from .model_usage import ModelUsage
 
 
 class AsyncOpenAILLM(AsyncBaseLLM):
@@ -20,19 +22,42 @@ class AsyncOpenAILLM(AsyncBaseLLM):
 		)
 
 	@retry(reraise=True, stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10), retry=retry_if_exception_type(Exception))
-	async def __call__(self, prompt: str, **kwargs: Any) -> str:
-		'''Call the LLM asynchronously via OpenAI Chat Completions API and return text.'''
+	async def __call__(self, prompt: str, **kwargs: Any) -> str | AsyncIterator[str]:
+		'''Call the LLM. Returns str (non-streaming) or AsyncIterator[str] (streaming).'''
 		payload: Dict[str, Any] = {
 			'model': self.config.id,
 			'messages': [{'role': 'user', 'content': prompt}],
 			'temperature': self.config.temperature,
 		}
-		
+
 		payload_override: Dict[str, Any] = kwargs.pop('payload_override', {})
 		payload.update(payload_override)
 
+		if payload.get('stream'):
+			return self._stream(payload)
+
 		response = await self._client.chat.completions.create(**payload)
+		self._record_usage(response)
 		return self._extract_content(response)
+
+	async def _stream(self, payload: Dict[str, Any]) -> AsyncIterator[str]:
+		'''Internal streaming implementation.'''
+		payload['stream_options'] = {'include_usage': True}
+		stream = await self._client.chat.completions.create(**payload)
+		async for chunk in stream:
+			if chunk.usage:
+				self._record_usage(chunk)
+			if chunk.choices and chunk.choices[0].delta.content:
+				yield chunk.choices[0].delta.content
+
+	def _record_usage(self, response: Any) -> None:
+		'''Extract usage from response and record to ModelUsage.'''
+		usage = getattr(response, 'usage', None)
+		if usage is None:
+			return
+		prompt_tokens = getattr(usage, 'prompt_tokens', 0) or 0
+		completion_tokens = getattr(usage, 'completion_tokens', 0) or 0
+		ModelUsage.get_instance().record(self.config.id, prompt_tokens, completion_tokens)
 
 	@staticmethod
 	def _extract_content(response: Any) -> str:
