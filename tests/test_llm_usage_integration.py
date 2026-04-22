@@ -256,3 +256,80 @@ class TestOllamaUsage:
         assert result == "Ollama answer"
         assert usage.total_prompt_tokens == 35
         assert usage.total_completion_tokens == 20
+
+
+class TestMLXUsage:
+    def setup_method(self):
+        ModelUsage._instance = None
+
+    @pytest.mark.asyncio
+    async def test_non_streaming_records_usage(self, tmp_path):
+        from src.models.mlx_model import AsyncMLXLLM
+        from src.models.base import LLMConfig
+
+        cache_file = tmp_path / "prices.json"
+        cache_file.write_text("{}", encoding="utf-8")
+        usage = ModelUsage.get_instance(pricing_path=cache_file)
+
+        config = LLMConfig(
+            id="mlx-community/gemma-2-2b", provider="mlx", description="",
+            base_url="http://localhost:8080/v1", api_key="mlx", temperature=0.7,
+        )
+
+        mock_usage = MagicMock()
+        mock_usage.prompt_tokens = 20
+        mock_usage.completion_tokens = 10
+
+        mock_message = MagicMock()
+        mock_message.content = "MLX answer"
+
+        mock_choice = MagicMock()
+        mock_choice.message = mock_message
+
+        mock_response = MagicMock()
+        mock_response.choices = [mock_choice]
+        mock_response.usage = mock_usage
+
+        mock_client = AsyncMock()
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+
+        llm = AsyncMLXLLM(config, client=mock_client)
+        result = await llm("test prompt")
+
+        assert result == "MLX answer"
+        assert usage.total_prompt_tokens == 20
+        assert usage.total_completion_tokens == 10
+
+    @pytest.mark.asyncio
+    async def test_non_streaming_no_usage_no_crash(self, tmp_path):
+        """MLX server may not return usage — should not crash."""
+        from src.models.mlx_model import AsyncMLXLLM
+        from src.models.base import LLMConfig
+
+        cache_file = tmp_path / "prices.json"
+        cache_file.write_text("{}", encoding="utf-8")
+        usage = ModelUsage.get_instance(pricing_path=cache_file)
+
+        config = LLMConfig(
+            id="mlx-model", provider="mlx", description="",
+            base_url="http://localhost:8080/v1", api_key="mlx", temperature=0.7,
+        )
+
+        mock_message = MagicMock()
+        mock_message.content = "MLX answer"
+
+        mock_choice = MagicMock()
+        mock_choice.message = mock_message
+
+        mock_response = MagicMock()
+        mock_response.choices = [mock_choice]
+        mock_response.usage = None
+
+        mock_client = AsyncMock()
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+
+        llm = AsyncMLXLLM(config, client=mock_client)
+        result = await llm("test prompt")
+
+        assert result == "MLX answer"
+        assert usage.total_prompt_tokens == 0
