@@ -72,3 +72,14 @@ class AsyncBaseLLM(ABC):
 		(when payload_override contains stream=True).
 		'''
 		...
+
+	@abstractmethod
+	def _record_usage(self, response: Any) -> None:
+		'''Extract usage from response and record to ModelUsage.'''
+		...
+
+	@staticmethod
+	@abstractmethod
+	def _extract_content(response: Any) -> str:
+		'''Extract text content from a model response.'''
+		...

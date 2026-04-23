@@ -1,6 +1,4 @@
 import json
-import httpx
-import pytest
 from pathlib import Path
 from src.models.model_usage import ModelUsage
 
@@ -85,7 +83,11 @@ class TestModelUsage:
         b = ModelUsage.get_instance()
         assert a is b
 
-    def test_missing_pricing_file_no_crash(self, tmp_path):
+    def test_missing_pricing_file_no_crash(self, tmp_path, monkeypatch):
+        def fake_download(url, destination_path, **kwargs):
+            raise RuntimeError("network unavailable")
+        monkeypatch.setattr("src.models.model_usage.download_file", fake_download)
+
         usage = ModelUsage(pricing_path=tmp_path / "nonexistent.json")
         usage.record("gpt-4", prompt_tokens=10, completion_tokens=5)
         assert usage.total_prompt_tokens == 10
@@ -96,9 +98,8 @@ class TestPricingSync:
     def setup_method(self):
         ModelUsage._instance = None
 
-    @pytest.mark.asyncio
-    async def test_fetch_and_merge_new_keys(self, tmp_path, monkeypatch):
-        """New keys from remote are added; existing keys are updated."""
+    def test_fetch_and_merge_new_keys(self, tmp_path, monkeypatch):
+        """New keys from remote are added; existing keys are updated; local-only keys preserved."""
         old = {
             "gpt-4o-mini": {"input_cost_per_token": 0.0001, "output_cost_per_token": 0.0002},
             "my-custom-model": {"input_cost_per_token": 0.001, "output_cost_per_token": 0.002},
@@ -113,11 +114,12 @@ class TestPricingSync:
 
         usage = ModelUsage(pricing_path=cache_file)
 
-        async def fake_get(self, url, timeout=30):
-            return httpx.Response(200, json=remote, request=httpx.Request("GET", url))
+        def fake_download(url, destination_path, **kwargs):
+            Path(destination_path).parent.mkdir(parents=True, exist_ok=True)
+            Path(destination_path).write_text(json.dumps(remote), encoding="utf-8")
 
-        monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
-        await usage.update_prices()
+        monkeypatch.setattr("src.models.model_usage.download_file", fake_download)
+        usage.update_prices()
 
         merged = json.loads(cache_file.read_text(encoding="utf-8"))
 
@@ -129,19 +131,18 @@ class TestPricingSync:
         assert "my-custom-model" in merged
         assert merged["my-custom-model"]["input_cost_per_token"] == 0.001
 
-    @pytest.mark.asyncio
-    async def test_fetch_creates_file_if_missing(self, tmp_path, monkeypatch):
+    def test_load_downloads_if_missing(self, tmp_path, monkeypatch):
+        """When pricing file is absent, __init__ downloads it via _load_prices."""
         cache_file = tmp_path / "pricing" / "model_prices.json"
-        usage = ModelUsage(pricing_path=cache_file)
-
         remote = {"gpt-4": {"input_cost_per_token": 0.01, "output_cost_per_token": 0.03}}
 
-        async def fake_get(self, url, timeout=30):
-            return httpx.Response(200, json=remote, request=httpx.Request("GET", url))
+        def fake_download(url, destination_path, **kwargs):
+            Path(destination_path).parent.mkdir(parents=True, exist_ok=True)
+            Path(destination_path).write_text(json.dumps(remote), encoding="utf-8")
 
-        monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
-        await usage.update_prices()
+        monkeypatch.setattr("src.models.model_usage.download_file", fake_download)
+        usage = ModelUsage(pricing_path=cache_file)
 
         assert cache_file.exists()
-        data = json.loads(cache_file.read_text(encoding="utf-8"))
-        assert "gpt-4" in data
+        assert "gpt-4" in usage._prices
+        assert usage._prices["gpt-4"]["input_cost_per_token"] == 0.01

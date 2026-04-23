@@ -4,7 +4,7 @@ from typing import Any, List, Dict, Callable, Awaitable
 
 from .benchmark import Benchmark, DatasetType
 from .measures import exact_match_score, f1_score
-from .tools import load_json, download_file
+from ..utils.file_utils import load_json, download_file
 from ..utils import get_logger
 
 logger = get_logger(__name__)

@@ -7,9 +7,7 @@ import threading
 from pathlib import Path
 from typing import Any
 
-import httpx
-
-from ..utils import get_logger
+from ..utils import get_logger, download_file, load_json
 
 logger = get_logger(__name__)
 
@@ -40,28 +38,37 @@ class ModelUsage:
 		self._load_prices()
 
 	def _load_prices(self) -> None:
-		'''Load pricing data from local JSON cache.'''
+		'''Load pricing data from local cache, downloading on first run.'''
 		if not self._pricing_path.exists():
-			logger.warning(f'Pricing file not found: {self._pricing_path}. All costs will be $0.')
-			return
+			try:
+				download_file(url=_LITELLM_PRICES_URL, destination_path=str(self._pricing_path))
+			except Exception as exc:
+				logger.warning(f'Failed to fetch pricing from {_LITELLM_PRICES_URL}: {exc}. All costs will be $0.')
+				return
 		try:
-			with open(self._pricing_path, 'r', encoding='utf-8') as f:
-				self._prices = json.load(f)
+			data = load_json(str(self._pricing_path))
+			self._prices = data if isinstance(data, dict) else {}
 			logger.info(f'Loaded pricing for {len(self._prices)} models from {self._pricing_path}')
-		except (json.JSONDecodeError, OSError) as exc:
+		except (FileNotFoundError, ValueError, json.JSONDecodeError, OSError) as exc:
 			logger.warning(f'Failed to load pricing: {exc}. All costs will be $0.')
 
-	async def update_prices(self, url: str = _LITELLM_PRICES_URL) -> None:
+	def update_prices(self, url: str = _LITELLM_PRICES_URL) -> None:
 		'''Fetch latest pricing from litellm GitHub and merge into local cache.
 
 		Merge strategy: {**old_local, **new_remote} — remote overwrites matching
 		keys; local-only keys (user-added models) are preserved.
 		'''
 		logger.info(f'Fetching pricing from {url} ...')
-		async with httpx.AsyncClient() as client:
-			resp = await client.get(url, timeout=30)
-			resp.raise_for_status()
-			remote_prices: dict[str, Any] = resp.json()
+		tmp_path = self._pricing_path.with_suffix('.new.json')
+		try:
+			download_file(url=url, destination_path=str(tmp_path))
+			remote_prices = load_json(str(tmp_path))
+		finally:
+			if tmp_path.exists():
+				tmp_path.unlink()
+
+		if not isinstance(remote_prices, dict):
+			raise ValueError(f'Expected JSON object at {url}, got {type(remote_prices).__name__}')
 
 		# Merge: old local values as base, remote overwrites
 		merged = {**self._prices, **remote_prices}
