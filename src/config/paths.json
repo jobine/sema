@@ -1,0 +1,11 @@
+{
+    "root": "~/.sema",
+    "paths": {
+        "experiments":  "{root}/experiments",
+        "benchmarks":   "{root}/benchmarks",
+        "memory":       "{root}/memory",
+        "trajectories": "{root}/trajectories",
+        "pricing":      "{root}/pricing/model_prices.json",
+        "logs":         "{root}/logs/sema.log"
+    }
+}

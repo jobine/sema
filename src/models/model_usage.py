@@ -7,12 +7,12 @@ import threading
 from pathlib import Path
 from typing import Any
 
+from ..config.paths import SEMAPaths
 from ..utils import get_logger, download_file, load_json
 
 logger = get_logger(__name__)
 
-_DEFAULT_PRICING_PATH = Path.home() / '.sema' / 'pricing' / 'model_prices.json'
-_LITELLM_PRICES_URL = (
+_PRICES_URL = (
 	'https://raw.githubusercontent.com/BerriAI/litellm/main/'
 	'model_prices_and_context_window.json'
 )
@@ -30,7 +30,7 @@ class ModelUsage:
 
 	def __init__(self, pricing_path: Path | None = None) -> None:
 		self._lock = threading.Lock()
-		self._pricing_path = pricing_path or _DEFAULT_PRICING_PATH
+		self._pricing_path = pricing_path or SEMAPaths.load().pricing
 		self._prices: dict[str, dict[str, Any]] = {}
 		self._total_prompt_tokens: int = 0
 		self._total_completion_tokens: int = 0
@@ -41,9 +41,9 @@ class ModelUsage:
 		'''Load pricing data from local cache, downloading on first run.'''
 		if not self._pricing_path.exists():
 			try:
-				download_file(url=_LITELLM_PRICES_URL, destination_path=str(self._pricing_path))
+				download_file(url=_PRICES_URL, destination_path=str(self._pricing_path))
 			except Exception as exc:
-				logger.warning(f'Failed to fetch pricing from {_LITELLM_PRICES_URL}: {exc}. All costs will be $0.')
+				logger.warning(f'Failed to fetch pricing from {_PRICES_URL}: {exc}. All costs will be $0.')
 				return
 		try:
 			data = load_json(str(self._pricing_path))
@@ -52,7 +52,7 @@ class ModelUsage:
 		except (FileNotFoundError, ValueError, json.JSONDecodeError, OSError) as exc:
 			logger.warning(f'Failed to load pricing: {exc}. All costs will be $0.')
 
-	def update_prices(self, url: str = _LITELLM_PRICES_URL) -> None:
+	def update_prices(self, url: str = _PRICES_URL) -> None:
 		'''Fetch latest pricing from litellm GitHub and merge into local cache.
 
 		Merge strategy: {**old_local, **new_remote} — remote overwrites matching

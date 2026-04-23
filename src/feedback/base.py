@@ -37,7 +37,8 @@ class FeedbackCollector:
 
     def __init__(self, persistence_dir: str | Path | None = None) -> None:
         if persistence_dir is None:
-            self._persistence_dir = Path.home() / '.sema' / 'trajectories'
+            from ..config.paths import SEMAPaths
+            self._persistence_dir = SEMAPaths.load().trajectories
         else:
             self._persistence_dir = Path(persistence_dir)
         self._trajectories: list[Trajectory] = []

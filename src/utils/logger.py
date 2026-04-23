@@ -18,6 +18,8 @@ import os
 import logging
 from contextlib import contextmanager
 from logging import Logger
+from ..config.paths import SEMAPaths
+
 
 class ColoredFormatter(logging.Formatter):
     '''Custom formatter to add colors to log levels.'''
@@ -101,7 +103,7 @@ def suppress_logging(level: int = logging.ERROR, logger: Logger | None = None):
 
 
 # Default log path
-_default_log_path = os.path.normpath(os.path.join(os.path.expanduser('~'), '.sema', 'logs', 'sema.log'))
+_default_log_path = str(SEMAPaths.load().logs)
 
 # For convenience, setup logging when this module is imported
 # You can also call setup_logging() explicitly in your main.py for more control

@@ -30,10 +30,12 @@ class ExperimentTracker:
     def __init__(
         self,
         experiment_name: str,
-        storage_root: str = '~/.sema/experiments',
+        storage_root: str | None = None,
     ) -> None:
+        from ..config.paths import SEMAPaths
         self._experiment_name = experiment_name
-        self._root = Path(storage_root).expanduser() / experiment_name
+        resolved_root = storage_root if storage_root is not None else str(SEMAPaths.load().experiments)
+        self._root = Path(resolved_root).expanduser() / experiment_name
         self._checkpoints_dir = self._root / 'checkpoints'
         self._history_path = self._root / 'history.jsonl'
         self._best_workflow_path = self._root / 'best_workflow.json'

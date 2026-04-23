@@ -52,7 +52,8 @@ class LongTermMemory(MemoryStore):
         self._decay_rate = decay_rate
 
         if persistence_dir is None:
-            self._persistence_path = Path.home() / '.sema' / 'memory' / agent_id / 'long_term.jsonl'
+            from ..config.paths import SEMAPaths
+            self._persistence_path = SEMAPaths.load().memory / agent_id / 'long_term.jsonl'
         else:
             self._persistence_path = Path(persistence_dir) / 'long_term.jsonl'
 

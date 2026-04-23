@@ -4,6 +4,7 @@ from typing import Any, List, Dict, Callable, Awaitable
 
 from .benchmark import Benchmark, DatasetType
 from .measures import exact_match_score, f1_score
+from ..config.paths import SEMAPaths
 from ..utils.file_utils import load_json, download_file
 from ..utils import get_logger
 
@@ -14,7 +15,10 @@ class HotpotQA(Benchmark):
     def __init__(self, data_folder: str = None, dataset_type: DatasetType = DatasetType.ALL):
         self.dataset_type = dataset_type
 
-        location = os.path.normpath(os.path.expanduser(data_folder or '~/.sema/benchmarks'))
+        if data_folder:
+            location = os.path.normpath(os.path.expanduser(data_folder))
+        else:
+            location = str(SEMAPaths.load().benchmarks)
         super().__init__(name=type(self).__name__.lower(), data_folder=location)
 
     @property
