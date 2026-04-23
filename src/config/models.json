@@ -70,7 +70,7 @@
         "api_key": "",
         "temperature": 0.95
     },
-    "gemma-4-26b-a4b-it-8bit": {
+    "gemma-4": {
         "id": "/Users/mingzhao/mlx/models/gemma-4-26b-a4b-it-8bit",
         "provider": "mlx",
         "description": "Access to Google's Gemma 4 26B A4B IT 8-bit model.",

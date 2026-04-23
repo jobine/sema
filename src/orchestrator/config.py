@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
+from ..config.paths import SEMAPaths
 from ..workflow.environment import Environment
 from ..optimizer.base import OptimizerConfig
 from ..feedback.meta_reward import MetaRewardConfig
@@ -13,7 +14,7 @@ class SEMAConfig(BaseModel):
     model_config = ConfigDict(extra='allow')
 
     experiment_name: str = 'sema_experiment'
-    storage_root: str = '~/.sema/experiments'
+    storage_root: str = Field(default_factory=lambda: str(SEMAPaths.load().experiments))
     goal: str = ''
     environment: Environment
     optimizer_type: str = 'hierarchical'

@@ -51,8 +51,7 @@ def _optimizer_choices() -> list[str]:
         from src.optimizer.registry import OptimizerRegistry  # noqa: PLC0415
         return OptimizerRegistry.list_optimizers()
     except Exception:
-        return ['hierarchical', 'evolutionary', 'llm', 'rl',
-                'self_refinement', 'text_grad', 'cmaes', 'mcts', 'prompt_breeding']
+        return ['hierarchical', 'evolutionary', 'llm', 'rl', 'self_refinement', 'text_grad', 'cmaes', 'mcts', 'prompt_breeding']
 
 
 # ---------------------------------------------------------------------------
@@ -68,7 +67,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
     parser.add_argument(
         '--experiment-name',
-        default='hotpotqa_sema_gemma_4_26b_a4b_it_8bit',
+        default='hotpotqa_sema_gpt_4o_mini',
         help='Name of the experiment (used for checkpoint directory).',
     )
     parser.add_argument(
@@ -135,17 +134,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     # LLM model overrides
     parser.add_argument(
         '--bootstrap-model',
-        default='gemma-4-26b-a4b-it-8bit',
+        default='gpt-4o-mini',
         help='LLM model used to design the seed workflow when --template=auto.',
     )
     parser.add_argument(
         '--executor-model',
-        default='gemma-4-26b-a4b-it-8bit',
+        default='gpt-4o-mini',
         help='Default LLM model for workflow node agents during execution.',
     )
     parser.add_argument(
         '--optimizer-model',
-        default='gemma-4-26b-a4b-it-8bit',
+        default='gpt-4o-mini',
         help='Default LLM model for all optimizer calls (mutation, crossover, etc.).',
     )
 

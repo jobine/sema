@@ -30,10 +30,12 @@ class ExperimentTracker:
     def __init__(
         self,
         experiment_name: str,
-        storage_root: str = '~/.sema/experiments',
+        storage_root: str | None = None,
     ) -> None:
+        from ..config.paths import SEMAPaths
         self._experiment_name = experiment_name
-        self._root = Path(storage_root).expanduser() / experiment_name
+        resolved_root = storage_root if storage_root is not None else str(SEMAPaths.load().experiments)
+        self._root = Path(resolved_root).expanduser() / experiment_name
         self._checkpoints_dir = self._root / 'checkpoints'
         self._history_path = self._root / 'history.jsonl'
         self._best_workflow_path = self._root / 'best_workflow.json'
@@ -144,8 +146,13 @@ class ExperimentTracker:
         '''Return list of per-generation stat dicts.'''
         return list(self._history)
 
-    def summary_report(self) -> str:
-        '''Generate a Markdown report, write report.md, and return the content.'''
+    def summary_report(self, extra_sections: str = '') -> str:
+        '''Generate a Markdown report, write report.md, and return the content.
+
+        Args:
+            extra_sections: Optional additional markdown content appended after
+                the improvement curve (e.g., model usage summary).
+        '''
         generations_run = len(self._history)
         best_wf_id = ''
         for entry in self._history:
@@ -172,6 +179,9 @@ class ExperimentTracker:
             f'|------------|--------------|-------------|\n'
             f'{table}\n'
         )
+
+        if extra_sections:
+            report += f'\n{extra_sections}\n'
 
         with open(self._report_path, 'w', encoding='utf-8') as f:
             f.write(report)
